@@ -1,0 +1,7 @@
+Twotp, the Twisted Erlang node protocol.
+
+See http://launchpad.net/twotp for current information. Documentation is
+available in the doc/ folder.
+
+Twotp depends of Twisted being installed, and required at least Twisted 2.5
+(trunk is recommanded). Once installed, run 'trial erlang' to launch the tests.
