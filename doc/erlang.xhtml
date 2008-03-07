@@ -1,0 +1,258 @@
+<?xml version="1.0"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN"
+    "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <title>Twisted as an Erlang node</title>
+  </head>
+
+  <body>
+    <h1>Twisted as an Erlang node</h1>
+
+    <h2>Prequesites</h2>
+
+    <p>
+        In this document, we'll assume that you have a basic knowledge of
+        Twisted (how to create a client, how to create a server, what is
+        the protocol/factory mechanism, what is a deferred), and of Erlang
+        (what is a node, what is the EPMD, what are the basic types). Please
+        refer to the respective documentation if it's not the case.
+    </p>
+
+    <h2>Invoking methods on an Erlang node</h2>
+
+    <p>
+        To create connection to an erlang node, you'll need to get the cookie
+        and create a node name. The utility functions
+        <code class="API" base="erlange.node">readCookie</code>
+        and  <code class="API" base="erlang.node">buildNodeName</code>
+        are here to help you out: the first read the cookie at the usual
+        place ($HOME/.erlang.cookie), the second append the name of the
+        host to the name you have chosen.
+    </p>
+
+    <p>
+        Then, instantiate the class
+        <code class="API" base="erlang.epmd">OneShotPortMapperFactory</code>
+        with the infos, and call connectionToNode on it. This method will:
+        <ul>
+            <li>create a connection with the EPMD</li>
+            <li>ask for the port info of the node</li>
+            <li>connect to the node</li>
+            <li>return the connected node client protocol</li>
+        </ul>
+        Once you get back the protocol instance, you can use the callRemote
+        method on its factory to make calls to the node.
+    </p>
+
+    <p>
+        If you have to make several calls to a node, don't bother keep a
+        reference to it: OneShotPortMapperFactory will keep a cache of connected
+        instances for you.
+    </p>
+
+    <pre class="python">
+from twisted.internet import reactor
+from erlang import OneShotPortMapperFactory, readCookie, buildNodeName
+
+def gotConnection(inst):
+    return inst.factory.callRemote(inst, "file", "get_cwd"
+        ).addCallback(gotResult)
+
+def gotResult(resp):
+    print "Got response", resp
+    reactor.stop()
+
+def eb(error):
+    print "Got error", error
+    reactor.stop()
+
+cookie = readCookie()
+nodeName = buildNodeName('nodename')
+epmd = OneShotPortMapperFactory(nodeName, cookie)
+epmd.connectToNode("foo").addCallback(gotConnection).addErrback(eb)
+reactor.run()
+    </pre>
+
+    <h2>Instantiating a node</h2>
+
+    <p>
+        The process for creating a node is relatively straightforward. First
+        you  create a node server factory, and make it listen on an arbitrary
+        port. Then you create client connection to the EPMD, giving the server
+        port as argument. This process is simplified by the method publish
+        of the EPMD factory.
+
+        The EPMD should be started outside Twisted. It is
+        started automatically when you start an erlang application.
+    </p>
+
+    <pre class="python">
+from twisted.internet import reactor
+from erlang import PersistentPortMapperFactory, readCookie, buildNodeName
+
+cookie = readCookie()
+nodeName = buildNodeName('nodename')
+epmd = PersistentPortMapperFactory(nodeName, cookie)
+epmd.publish()
+reactor.run()
+    </pre>
+
+    <p>
+        Once you have the node name and the cookie (see above to understand
+        how), you create a
+        <code class="API" base="erlang.epmd">PersistentPortMapperFactory</code>
+        instance, and call publish on it: it will create the node, make it
+        listen on an arbitrary port, and connect to the EPMD to publish the
+        information.
+    </p>
+
+    <p>
+        Of course, for now it does nothing useful, so we now see how to
+        get data from an erlang nodes.
+    </p>
+
+
+    <h2>Receiving method calls from an Erlang node</h2>
+
+    <p>
+        The key method here is the method publish you've seen above: this method
+        takes a hash table of name/object. The key for this table is the
+        module used when making a call from Erlang. The value is an instance
+        of a class with methods prefixed by <code>remote_</code>.
+    </p>
+
+    <pre class="python">
+class Proxy(object):
+    def remote_bar(self, arg):
+        return arg * 2
+
+from twisted.internet import reactor
+from erlang import PersistentPortMapperFactory, readCookie, buildNodeName
+
+cookie = readCookie()
+nodeName = buildNodeName('nodename')
+epmd = PersistentPortMapperFactory(nodeName, cookie)
+epmd.publish(foo=Proxy())
+reactor.run()
+    </pre>
+
+    <p>
+        The script above define a <code>Proxy</code> with a
+        <code>remote_bar</code> method. We can publish with the keyword
+        foo, which creates a module named foo with the method bar. We can now
+        call this method in an Erlang console:
+    </p>
+
+    <pre>
+(erlang@node)1> rpc:call('nodename@node', foo, bar, [3]).
+{ok,6}
+    </pre>
+
+    <h2>An example: using a Mnesia database</h2>
+
+    <p>
+        To try the communication as client, we'll set up a mnesia database to
+        be used within a Twisted application. Please refer to the mnesia
+        documentation for further information. Note that there is nothing new
+        here: it's just a concrete example to put the things together.
+    </p>
+
+    <p>
+        First create a file named twisted.hrl with following record:
+    </p>
+
+    <pre class="erlang">
+-record(user, {id, name}).
+    </pre>
+
+    <p>
+        Then create a file named twisted.erl
+    </p>
+
+    <pre class="erlang">
+-module(twisted).
+-export([init/0, insert_user/2, get_user/1]).
+-include("twisted.hrl").
+
+init() ->
+    mnesia:create_table(user,
+                        [{attributes, record_info(fields, user)}]).
+
+insert_user(UserName, UserId) ->
+    User = #user{id=UserId, name=UserName},
+    Fun = fun() ->
+            mnesia:write(User)
+        end,
+    mnesia:transaction(Fun).
+
+get_user(UserId) ->
+    Fun = fun() ->
+            [User] = mnesia:read(user, UserId, read),
+            User
+        end,
+    case mnesia:transaction(Fun) of
+        {atomic, User} ->
+            User
+    end.
+    </pre>
+
+    <p>
+        Now fire an erlang interpreter. We'll compile the twisted file, start
+        the mnesia database, create the table, and insert a test user.
+    </p>
+
+    <pre class="shell">
+$ erl -sname twisted_mnesia
+
+(twisted_mnesia@localhost)1> c(twisted).
+{ok,twisted}
+(twisted_mnesia@localhost)2> mnesia:start().
+ok
+(twisted_mnesia@localhost)3> twisted:init().
+{atomic,ok}
+(twisted_mnesia@localhost)4> twisted:insert_user(test1, 1).
+{atomic,ok}
+(twisted_mnesia@localhost)5> twisted:get_user(1).
+{user,1,test1}
+    </pre>
+
+    <p>
+        The node is ready to accept our python calls.
+    </p>
+
+    <pre class="python">
+from twisted.internet import reactor
+from erlang import OneShotPortMapperFactory, readCookie, buildNodeName
+
+def gotConnection(inst):
+    return inst.factory.callRemote(inst, "twisted", "get_user", 1
+        ).addCallback(gotResult)
+
+def gotResult(resp):
+    print "Got response", resp
+    reactor.stop()
+
+def eb(error):
+    print "Got error", error
+    reactor.stop()
+
+cookie = readCookie()
+nodeName = buildNodeName('nodename')
+epmd = OneShotPortMapperFactory(nodeName, cookie)
+epmd.connectToNode("twisted_mnesia").addCallback(gotConnection).addErrback(eb)
+reactor.run()
+    </pre>
+
+    <p>
+        If everything is fine, you should get the following response:
+    </p>
+
+    <pre class="shell">
+Got response (&lt;Atom at -0x48806e54, text 'user'&gt;, 1, &lt;Atom at -0x48806e74, text 'test1'&gt;)
+    </pre>
+
+  </body>
+</html>
+
