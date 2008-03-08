@@ -164,6 +164,14 @@ def Dict(val):
 
 
 
+def Set(val):
+    """
+    Build a set of values.
+    """
+    return set(val)
+
+
+
 class Pid(Term):
     """
     Represent a Pid term.

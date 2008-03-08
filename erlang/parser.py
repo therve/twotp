@@ -10,7 +10,7 @@ import struct
 
 from erlang.term import Integer, String, List, Tuple, Float, Atom, Reference
 from erlang.term import Port, Pid, Binary, Fun, NewFun, Export, BitBinary
-from erlang.term import ConstantHolder, Dict
+from erlang.term import ConstantHolder, Dict, Set
 
 
 
@@ -143,6 +143,23 @@ class Parser(ConstantHolder):
         return None
 
 
+    def _identify_set(self, elements):
+        """
+        Identify a set from a tuple of elements.
+        """
+        if elements:
+            if isinstance(elements[0], Atom) and elements[0].text == "sets":
+                if len(elements) == 9:
+                    # 'set', size, active, max, offset, expand, contract,
+                    # empty, content
+                    d = []
+                    for i in elements[8][0]:
+                        if i:
+                            d.append(i[0])
+                    return d
+        return None
+
+
     def parse_small_tuple(self, data):
         """
         Parse data of a small tuple.
@@ -152,6 +169,9 @@ class Parser(ConstantHolder):
         d = self._identify_dict(elements)
         if d is not None:
             return Dict(d), data
+        s = self._identify_set(elements)
+        if s is not None:
+            return Set(s), data
         return Tuple(elements), data
 
 
@@ -164,6 +184,9 @@ class Parser(ConstantHolder):
         d = self._identify_dict(elements)
         if d is not None:
             return Dict(d), data
+        s = self._identify_set(elements)
+        if s is not None:
+            return Set(s), data
         return Tuple(elements), data
 
 

@@ -196,6 +196,16 @@ class PackTestCase(TestCase):
             "jjjjjjjjjjjjjjjj")
 
 
+    def test_packSet(self):
+        """
+        Test primary support for set.
+        """
+        self.assertEquals(self.packer.packOneTerm(set(["bar", "foo"])),
+            "h\td\x00\x04setsa\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjjh"
+            "\x01h\x10l\x00\x00\x00\x01k\x00\x03foojl\x00\x00\x00\x01k\x00"
+            "\x03barjjjjjjjjjjjjjjj")
+
+
     def test_packUnhandledClass(self):
         """
         Try packing an object not handled.

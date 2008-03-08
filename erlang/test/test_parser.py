@@ -276,6 +276,17 @@ class ParseTestCase(TestCase):
             [{"foo": "bar", "spam": 1}])
 
 
+    def test_parseSet(self):
+        """
+        Test parsing a set object.
+        """
+        data = (
+            "\x83h\td\x00\x04setsa\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjjh"
+            "\x01h\x10l\x00\x00\x00\x01k\x00\x03foojl\x00\x00\x00\x01k\x00"
+            "\x03barjjjjjjjjjjjjjjj")
+        self.assertEquals(
+            list(self.parser.binaryToTerms(data)),
+            [set(["bar", "foo"])])
 
     def test_binaryToTerms(self):
         """
