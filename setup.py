@@ -9,7 +9,7 @@ def main():
     setup(
         name="twotp",
         version="0.1",
-        description=("Twotp is an implementation of the Erlang node protocol"
+        description=("Twotp is an implementation of the Erlang node protocol "
                      "written in Python, using the Twisted networking engine"),
         author="Thomas Herve",
         author_email="therve@free.fr",

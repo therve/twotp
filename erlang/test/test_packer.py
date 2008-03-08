@@ -185,11 +185,22 @@ class PackTestCase(TestCase):
         self.assertEquals(self.packer.packOneTerm([]), "j")
 
 
+    def test_packDict(self):
+        """
+        Test primary support for dict.
+        """
+        self.assertEquals(self.packer.packOneTerm({"foo": "bar", "spam": 1}),
+            "h\td\x00\x04dicta\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjjh"
+            "\x01h\x10l\x00\x00\x00\x01l\x00\x00\x00\x02k\x00\x03fook\x00\x03"
+            "barjjl\x00\x00\x00\x01l\x00\x00\x00\x02k\x00\x04spama\x01"
+            "jjjjjjjjjjjjjjjj")
+
+
     def test_packUnhandledClass(self):
         """
         Try packing an object not handled.
         """
-        d = {"a": 1}
+        d = object()
         self.assertRaises(UnhandledClass, self.packer.packOneTerm, d)
 
 

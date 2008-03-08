@@ -8,7 +8,7 @@ Build data for an erlang node.
 
 import struct
 
-from erlang.term import ConstantHolder
+from erlang.term import ConstantHolder, Atom
 
 
 
@@ -168,6 +168,29 @@ class Packer(ConstantHolder):
         for item in term:
             packetData += self.packOneTerm(item)
         return packetData
+
+
+    def pack_dict(self, term):
+        """
+        Pack a dict.
+
+        Warning: this is not yet complete. It's based on a basic understanding
+        of the stdlib dict module in Erlang, but doesn't exactly reproduce the
+        same structure. Beware if you use this for now.
+        """
+        size = len(term)
+        slot = (divmod(size, 16)[0] + 1) * 16
+        expand = slot * 5
+        contract = slot * 3
+        empty = ([],) * slot
+        emptyRemain = ([],) * (slot - size)
+        # XXX: this is mainly where the problem resides: in erlang dict, the
+        # keys in the content are placed in a particular order, specified by
+        # the phash function. For now, it just put the keys in Python order
+        content = tuple([[list(i)] for i in term.items()])
+        d = (Atom('dict'), size, slot, slot, slot/2,
+            expand, contract, empty, (content + emptyRemain,))
+        return self.packOneTerm(d)
 
 
     def pack_list(self, term):

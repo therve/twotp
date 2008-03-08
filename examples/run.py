@@ -32,6 +32,8 @@ class Proxy(object):
         cwd = filepath.FilePath(".").path
         return Tuple((Atom("ok"), String(cwd)))
 
+    def remote_echo(self, *args):
+        return Tuple((Atom("ok"), args[0]))
 
 
 def main1():

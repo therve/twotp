@@ -139,6 +139,7 @@ class Atom(Term):
         return hash((self.__class__, self.text))
 
 
+
 def Tuple(val):
     """
     Fake function for mapping erlang tuple.
@@ -152,6 +153,14 @@ def List(val):
     Fake function for mapping erlang list.
     """
     return list(val)
+
+
+
+def Dict(val):
+    """
+    Build a dict for key/value pairs.
+    """
+    return dict(val)
 
 
 

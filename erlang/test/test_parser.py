@@ -262,6 +262,21 @@ class ParseTestCase(TestCase):
             (b, ""))
 
 
+    def test_parseDict(self):
+        """
+        Test parsing a dict object.
+        """
+        data = (
+            "\x83h\td\x00\x04dicta\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjjh"
+            "\x01h\x10l\x00\x00\x00\x01l\x00\x00\x00\x02k\x00\x03fook\x00\x03"
+            "barjjl\x00\x00\x00\x01l\x00\x00\x00\x02k\x00\x04spama\x01"
+            "jjjjjjjjjjjjjjjj")
+        self.assertEquals(
+            list(self.parser.binaryToTerms(data)),
+            [{"foo": "bar", "spam": 1}])
+
+
+
     def test_binaryToTerms(self):
         """
         Try to parse a full binary stream.

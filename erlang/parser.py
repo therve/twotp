@@ -8,8 +8,9 @@ Parsing of data received from erlang node or epmd.
 
 import struct
 
-from erlang.term import Integer, String, List, Tuple, Float, Atom, Reference, Port, Pid, Binary, Fun, NewFun, Export, BitBinary
-from erlang.term import ConstantHolder
+from erlang.term import Integer, String, List, Tuple, Float, Atom, Reference
+from erlang.term import Port, Pid, Binary, Fun, NewFun, Export, BitBinary
+from erlang.term import ConstantHolder, Dict
 
 
 
@@ -125,12 +126,32 @@ class Parser(ConstantHolder):
         return res, data
 
 
+    def _identify_dict(self, elements):
+        """
+        Identify a dictionary from a tuple of elements.
+        """
+        if elements:
+            if isinstance(elements[0], Atom) and elements[0].text == "dict":
+                if len(elements) == 9:
+                    # 'dict', size, active, max, offset, expand, contract,
+                    # empty, content
+                    d = []
+                    for i in elements[8][0]:
+                        if i:
+                            d.append((i[0][0], i[0][1]))
+                    return d
+        return None
+
+
     def parse_small_tuple(self, data):
         """
         Parse data of a small tuple.
         """
         arity = self.parseChar(data[0])
         elements, data = self._parse_seq(arity, data[1:])
+        d = self._identify_dict(elements)
+        if d is not None:
+            return Dict(d), data
         return Tuple(elements), data
 
 
@@ -140,6 +161,9 @@ class Parser(ConstantHolder):
         """
         arity = self.parseInt(data[:4])
         elements, data = self._parse_seq(arity, data[4:])
+        d = self._identify_dict(elements)
+        if d is not None:
+            return Dict(d), data
         return Tuple(elements), data
 
 
