@@ -67,14 +67,42 @@ class MnesiaManager(object):
         return False
 
 
+    def hook_db_nodes(self, nodes):
+        return ", ".join([n.text for n in nodes])
+
+    def hook_fallback_error_function(self, fct):
+        return "%s:%s" % (fct[0].text, fct[1].text)
+
+
+    def hook_local_tables(self, tables):
+        return ", ".join([t.text for t in tables])
+
+
+    def hook_tables(self, tables):
+        return ", ".join([t.text for t in tables])
+
+
+    def hook_running_db_nodes(self, nodes):
+        return ", ".join([n.text for n in nodes])
+
+
+    def hook_subscribers(self, pids):
+        return ", ".join(["%s at %s" % (p.nodeId, p.nodeName.text) for p in pids])
+
+
     def gotConnection(self, proto):
         self.proto = proto
         def cb(result):
             for i in result:
+                name = i[0].text
                 if len(i) == 2 and isinstance(i[1], Atom):
-                    self.liststore.append((i[0].text, i[1].text))
+                    self.liststore.append((name, i[1].text))
                 else:
-                    self.liststore.append((i[0].text, str(i[1])))
+                    meth = getattr(self, "hook_%s" % (name,), None)
+                    if meth is not None:
+                        self.liststore.append((name, meth(i[1])))
+                    else:
+                        self.liststore.append((name, str(i[1])))
         return proto.factory.callRemote(proto, "mnesia", "system_info", 
                 Atom("all")).addCallback(cb)
 
