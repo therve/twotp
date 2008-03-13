@@ -22,6 +22,7 @@ from erlang import OneShotPortMapperFactory, readCookie, buildNodeName, Atom
 class MnesiaManager(object):
     def __init__(self, epmd):
         self.epmd = epmd
+        self.tables = []
 
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.connect("delete_event", self.delete_event)
@@ -32,7 +33,9 @@ class MnesiaManager(object):
         self.scrolled_window = gtk.ScrolledWindow()
         self.scrolled_window.set_border_width(0)
         self.scrolled_window.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_ALWAYS)
-        self.window.add(self.scrolled_window)
+
+        self.vbox = gtk.VBox(False, 0)
+        self.window.add(self.vbox)
 
         self.liststore = gtk.ListStore(str, str)
 
@@ -52,11 +55,57 @@ class MnesiaManager(object):
 
         self.scrolled_window.add_with_viewport(self.listview)
 
+        self.setup_menu()
+
+        self.vbox.pack_start(self.menu_bar, expand=False, fill=False)
+        self.vbox.pack_start(self.scrolled_window, expand=True, fill=True)
+
+        self.menu_bar.show()
         self.listview.show()
         self.scrolled_window.show()
+        self.vbox.show()
         self.window.show()
 
         self.epmd.connectToNode("twisted_mnesia").addCallback(self.gotConnection)
+
+
+    def setup_menu(self):
+        self.menu_bar = gtk.MenuBar()
+        table_menu = gtk.Menu()
+        self.list_tables_menu = gtk.Menu()
+        list_item = gtk.MenuItem("List")
+        quit_item = gtk.MenuItem("Quit")
+
+        table_menu.append(list_item)
+        table_menu.append(quit_item)
+
+        list_item.set_submenu(self.list_tables_menu)
+
+        quit_item.connect_object ("activate", self.destroy, "file.quit")
+
+        list_item.show()
+        quit_item.show()
+
+        table_item = gtk.MenuItem("Tables")
+        table_item.show()
+
+        table_item.set_submenu(table_menu)
+
+        self.menu_bar.append(table_item)
+
+
+    def list_table(self, table):
+        d = self.proto.factory.callRemote(self.proto, "mnesia", "table_info", table,
+                Atom("all"))
+      
+        def cb(result):
+            self.liststore.clear()
+            for name, value in result:
+                if isinstance(value, Atom):
+                    self.liststore.append((name.text, value.text))
+                else:
+                    self.liststore.append((name.text, str(value)))
+        return d.addCallback(cb)
 
 
     def destroy(self, widget, data=None):
@@ -70,6 +119,7 @@ class MnesiaManager(object):
     def hook_db_nodes(self, nodes):
         return ", ".join([n.text for n in nodes])
 
+
     def hook_fallback_error_function(self, fct):
         return "%s:%s" % (fct[0].text, fct[1].text)
 
@@ -79,6 +129,13 @@ class MnesiaManager(object):
 
 
     def hook_tables(self, tables):
+        self.tables = tables
+        for table in tables:
+            table_item = gtk.MenuItem(table.text)
+            self.list_tables_menu.append(table_item)
+            table_item.connect_object("activate", self.list_table, table)
+            table_item.show()
+        
         return ", ".join([t.text for t in tables])
 
 
@@ -93,16 +150,15 @@ class MnesiaManager(object):
     def gotConnection(self, proto):
         self.proto = proto
         def cb(result):
-            for i in result:
-                name = i[0].text
-                if len(i) == 2 and isinstance(i[1], Atom):
-                    self.liststore.append((name, i[1].text))
+            for name, value in result:
+                if isinstance(value, Atom):
+                    self.liststore.append((name.text, value.text))
                 else:
-                    meth = getattr(self, "hook_%s" % (name,), None)
+                    meth = getattr(self, "hook_%s" % (name.text,), None)
                     if meth is not None:
-                        self.liststore.append((name, meth(i[1])))
+                        self.liststore.append((name.text, meth(value)))
                     else:
-                        self.liststore.append((name, str(i[1])))
+                        self.liststore.append((name.text, str(value)))
         return proto.factory.callRemote(proto, "mnesia", "system_info", 
                 Atom("all")).addCallback(cb)
 
