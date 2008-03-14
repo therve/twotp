@@ -178,6 +178,15 @@ class PackTestCase(TestCase):
             "l\x00\x00\x00\x02d\x00\x01ad\x00\x01bj")
 
 
+    def test_packIntegerList(self):
+        """
+        Test packing a list of integers.
+        """
+        t = List([1, 2])
+        self.assertEquals(self.packer.packOneTerm(t),
+            "k\x00\x02\x01\x02")
+
+
     def test_packEmptyList(self):
         """
         Test packing an empty list.

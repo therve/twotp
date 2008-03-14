@@ -56,7 +56,7 @@ class Packer(ConstantHolder):
         """
         if integer >= self.MAX_INT:
             raise ValueError("Number too big to fit in int: %s" % (integer,))
-        return struct.pack("!I", integer)
+        return struct.pack("!i", integer)
 
 
     def _pack_id(self, term, maxSignificantBits=18):
@@ -216,6 +216,13 @@ class Packer(ConstantHolder):
         return self.packOneTerm(d)
 
 
+    def _check_string(self, term):
+        for i in term:
+            if i > 256:
+                return False
+        return True
+
+
     def pack_list(self, term):
         """
         Pack a list nil terminated.
@@ -224,6 +231,10 @@ class Packer(ConstantHolder):
         if length == 0:
             return self.packChar(self.MAGIC_NIL)
         else:
+            if self._check_string(term) and len(term) < self.MAX_SHORT:
+                term = ''.join([chr(i) for i in term])
+                return self.packChar(self.MAGIC_STRING) + self.packShort(len(term)) + term
+
             packetData = self.packChar(self.MAGIC_LIST) + self.packInt(length)
             for item in term:
                 packetData += self.packOneTerm(item)

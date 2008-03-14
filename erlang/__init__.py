@@ -12,6 +12,8 @@ from erlang.client import NodeClientFactory
 from erlang.epmd import PersistentPortMapperFactory, OneShotPortMapperFactory
 from erlang.node import buildNodeName, readCookie
 
+
+
 __all__ = ["NodeServerFactory", "NodeClientFactory",
-           "PersistentPortMapperFactory",
+           "PersistentPortMapperFactory", "buildNodeName", "readCookie",
            "OneShotPortMapperFactory", "Tuple", "Atom", "String"]
