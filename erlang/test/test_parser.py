@@ -124,6 +124,10 @@ class ParseTestCase(TestCase):
         """
         self.assertEquals(
             self.parser.binaryToTerm("b\x00\x00\x00\x0f"), (Integer(15), ""))
+        self.assertEquals(
+            self.parser.binaryToTerm("b\xff\xff\xff\xff"), (Integer(-1), ""))
+        self.assertEquals(
+            self.parser.binaryToTerm("b\xff\xff\xff\xfe"), (Integer(-2), ""))
 
 
     def test_parseSmallInteger(self):

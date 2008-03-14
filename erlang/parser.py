@@ -246,7 +246,7 @@ class Parser(ConstantHolder):
         """
         Parse an integer, on 4 bytes.
         """
-        x = self.parseInt(data[:4])
+        x = struct.unpack("!i", data[:4])[0]
         return Integer(x), data[4:]
 
 
