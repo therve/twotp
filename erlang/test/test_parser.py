@@ -38,7 +38,8 @@ class ParseTestCase(TestCase):
         Try to parse the binary representation of a short string object.
         """
         self.assertEquals(
-            self.parser.binaryToTerm("k\x00\x04dang"), (String("dang"), ""))
+            self.parser.binaryToTerm("k\x00\x04dang"),
+            ([100, 97, 110, 103], ""))
 
 
     def test_parseNil(self):
@@ -272,12 +273,12 @@ class ParseTestCase(TestCase):
         """
         data = (
             "\x83h\td\x00\x04dicta\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjjh"
-            "\x01h\x10l\x00\x00\x00\x01l\x00\x00\x00\x02k\x00\x03fook\x00\x03"
-            "barjjl\x00\x00\x00\x01l\x00\x00\x00\x02k\x00\x04spama\x01"
+            "\x01h\x10l\x00\x00\x00\x01l\x00\x00\x00\x02d\x00\x04spama\x01j"
+            "jl\x00\x00\x00\x01l\x00\x00\x00\x02d\x00\x03fook\x00\x03bar"
             "jjjjjjjjjjjjjjjj")
         self.assertEquals(
             list(self.parser.binaryToTerms(data)),
-            [{"foo": "bar", "spam": 1}])
+            [{Atom("foo"): [98, 97, 114], Atom("spam"): 1}])
 
 
     def test_parseSet(self):
@@ -285,12 +286,13 @@ class ParseTestCase(TestCase):
         Test parsing a set object.
         """
         data = (
-            "\x83h\td\x00\x04setsa\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjjh"
-            "\x01h\x10l\x00\x00\x00\x01k\x00\x03foojl\x00\x00\x00\x01k\x00"
-            "\x03barjjjjjjjjjjjjjjj")
+            "\x83h\td\x00\x04setsa\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjj"
+            "h\x01h\x10l\x00\x00\x00\x01d\x00\x03barjl\x00\x00\x00\x01d\x00"
+            "\x03foojjjjjjjjjjjjjjj")
         self.assertEquals(
             list(self.parser.binaryToTerms(data)),
-            [set(["bar", "foo"])])
+            [set([Atom("bar"), Atom("foo")])])
+
 
     def test_binaryToTerms(self):
         """

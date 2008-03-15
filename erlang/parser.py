@@ -86,9 +86,8 @@ class Parser(ConstantHolder):
         """
         strLen = self.parseShort(data[:2])
         strText = data[2:2 + strLen]
-        return String(strText), data[2 + strLen:]
-        #lst = map(ord, strText)
-        #return List(lst), data[2 + strLen:]
+        lst = map(ord, strText)
+        return List(lst), data[2 + strLen:]
 
 
     def parse_nil(self, data):
