@@ -73,6 +73,15 @@ class PackTestCase(TestCase):
         self.assertRaises(ValueError, self.packer.packInt, pow(2, 32) + 312)
 
 
+    def test_packLargeInt(self):
+        """
+        Test packing a long integer.
+        """
+        i = 2 ** 32 + 10
+        self.assertEquals(self.packer.pack_int(i),
+            "n\x05\x00\n\x00\x00\x00\x01")
+
+
     def test_packAtom(self):
         """
         Pack an atom term.

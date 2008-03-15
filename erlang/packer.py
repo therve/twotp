@@ -79,8 +79,30 @@ class Packer(ConstantHolder):
         """
         if 0 <= term < self.MAX_CHAR:
             return self.packChar(self.MAGIC_SMALL_INTEGER) + self.packChar(term)
-        else:
+        elif -2**31 <= term < 2**31:
             return self.packChar(self.MAGIC_INTEGER) + self.packInt(term)
+        else:
+            sign = int(term < 0)
+            term = abs(term)
+            a = 1
+            n = 0
+            while a < term:
+                n += 1
+                a = 256 ** n
+            if n < 256:
+                data = self.packChar(self.MAGIC_SMALL_BIG) + self.packChar(n)
+            else:
+                data = self.packChar(self.MAGIC_LARGE_BIG) + self.packInt(n)
+            data += self.packChar(sign)
+            content = []
+            for i in xrange(n - 1, -1, -1):
+                c = term // 256 ** i
+                content.append(self.packChar(c))
+                term = term - (256 ** i) * c
+            content.reverse()
+            return data + ''.join(content)
+
+    pack_long = pack_int
 
 
     def pack_float(self, term):

@@ -197,12 +197,12 @@ class Parser(ConstantHolder):
         """
         n = self.parseInt(data[:4])
         sign = self.parseChar(data[4])
-        bignum = 0L
-        for i in xrange(n):
-            d = self.parseChar(data[5 + n - i - 1])
-            bignum = bignum * 256L + long(d)
+        bignum = 0
+        for i in xrange(n - 1, -1, -1):
+            d = self.parseChar(data[5 + i])
+            bignum = bignum * 256 + d
         if sign:
-            bignum = bignum * -1L
+            bignum *= -1
         return Integer(bignum), data[5 + n:]
 
 
@@ -212,12 +212,12 @@ class Parser(ConstantHolder):
         """
         n = self.parseChar(data[0])
         sign = self.parseChar(data[1])
-        bignum = 0L
-        for i in xrange(n):
-            d = self.parseChar(data[2 + n - i - 1])
-            bignum = bignum * 256L + long(d)
+        bignum = 0
+        for i in xrange(n - 1, -1, -1):
+            d = self.parseChar(data[2 + i])
+            bignum = bignum * 256 + d
         if sign:
-            bignum = bignum * -1L
+            bignum *= -1
         return Integer(bignum), data[2 + n:]
 
 
