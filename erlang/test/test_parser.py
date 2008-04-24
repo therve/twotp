@@ -5,11 +5,10 @@
 Parser tests.
 """
 
-from twisted.trial.unittest import TestCase
-
 from erlang.term import Atom, Tuple, Pid, Reference, Integer, String, List
 from erlang.term import Float, Port, Binary, Fun, NewFun, Export, BitBinary
 from erlang.parser import Parser, RemainingDataError, UnhandledCode
+from erlang.test.util import TestCase
 
 
 

@@ -7,10 +7,10 @@ Test server node.
 
 from twisted.internet.task import Clock
 from twisted.internet.defer import Deferred
-from twisted.trial.unittest import TestCase
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
 from erlang.server import NodeServerProtocol, NodeServerFactory
+from erlang.test.util import TestCase
 
 
 

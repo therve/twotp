@@ -5,13 +5,13 @@
 Test basic node functionalities.
 """
 
-from twisted.trial.unittest import TestCase
 from twisted.internet.task import Clock
 from twisted.internet.defer import Deferred
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
 from erlang.node import NodeProtocol, buildNodeName, getHostName, MessageHandler
 from erlang.term import Pid, Atom, Reference
+from erlang.test.util import TestCase
 
 
 

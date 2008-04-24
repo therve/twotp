@@ -8,7 +8,6 @@ Test for EPMD connector.
 from twisted.internet.defer import Deferred
 from twisted.internet.error import ConnectionDone
 from twisted.internet import address
-from twisted.trial.unittest import TestCase
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
 from erlang.term import Node
@@ -16,6 +15,7 @@ from erlang.epmd import PortMapperProtocol, PersistentPortMapperFactory
 from erlang.epmd import OneShotPortMapperFactory, NodeNotFound
 
 from erlang.test.test_client import DummyClientFactory
+from erlang.test.util import TestCase
 
 
 

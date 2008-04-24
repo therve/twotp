@@ -8,10 +8,10 @@ Test client node.
 from twisted.internet.task import Clock
 from twisted.internet.defer import Deferred
 from twisted.internet.error import ConnectionDone
-from twisted.trial.unittest import TestCase
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
 from erlang.client import NodeClientProtocol, NodeClientFactory
+from erlang.test.util import TestCase
 
 
 

@@ -5,10 +5,9 @@
 Packer tests.
 """
 
-from twisted.trial.unittest import TestCase
-
 from erlang.term import Atom, Tuple, Pid, Reference, List
 from erlang.packer import Packer, UnhandledClass
+from erlang.test.util import TestCase
 
 
 

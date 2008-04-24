@@ -6,8 +6,7 @@ Test basic term functionalities.
 """
 
 from erlang.term import Atom, AtomNotInCache
-
-from twisted.trial.unittest import TestCase
+from erlang.test.util import TestCase
 
 
 
