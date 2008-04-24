@@ -207,23 +207,29 @@ class PackTestCase(TestCase):
         """
         Test primary support for dict.
         """
+        d = {Atom("foo"): "bar", Atom("spam"): 1}
+        items = d.items()
+        elts = (self.packer.packOneTerm(items[0])[1:],
+                self.packer.packOneTerm(items[1])[1:])
         self.assertEquals(
-            self.packer.packOneTerm({Atom("foo"): "bar", Atom("spam"): 1}),
+            self.packer.packOneTerm(d),
             "h\td\x00\x04dicta\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjjh"
-            "\x01h\x10l\x00\x00\x00\x01l\x00\x00\x00\x02d\x00\x04spama\x01j"
-            "jl\x00\x00\x00\x01l\x00\x00\x00\x02d\x00\x03fook\x00\x03bar"
-            "jjjjjjjjjjjjjjjj")
+            "\x01h\x10l\x00\x00\x00\x01l\x00\x00\x00%sj"
+            "jl\x00\x00\x00\x01l\x00\x00\x00%s"
+            "jjjjjjjjjjjjjjjj" % elts)
 
 
     def test_packSet(self):
         """
         Test primary support for set.
         """
+        s = set([Atom("bar"), Atom("foo")])
+        val = [i.text for i in s]
         self.assertEquals(
-            self.packer.packOneTerm(set([Atom("bar"), Atom("foo")])),
+            self.packer.packOneTerm(s),
             "h\td\x00\x04setsa\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjj"
-            "h\x01h\x10l\x00\x00\x00\x01d\x00\x03barjl\x00\x00\x00\x01"
-            "d\x00\x03foojjjjjjjjjjjjjjj")
+            "h\x01h\x10l\x00\x00\x00\x01d\x00\x03%sjl\x00\x00\x00\x01"
+            "d\x00\x03%sjjjjjjjjjjjjjjj" % tuple(val))
 
 
     def test_packUnhandledClass(self):
