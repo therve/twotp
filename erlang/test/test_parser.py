@@ -313,10 +313,17 @@ class ParseTestCase(TestCase):
 
     def test_compressedData(self):
         """
-        The parse is able to handle compressed data.
+        The parser is able to handle compressed data.
         """
         self.assertEquals(
             self.parser.binaryToTerm("P\x00\x00\x00\x12x\x9c\xcbf\xe0\xaf@"
                                      "\x05\x00@\xc8\x07\x83"),
             ([120] * 15, ""))
 
+
+    def test_parseNewFloat(self):
+        """
+        Try to parse a new float.
+        """
+        self.assertEquals(self.parser.binaryToTerm('F?\xf3\xae\x14z\xe1G\xae'),
+            (1.23, ""))

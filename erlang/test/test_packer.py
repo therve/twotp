@@ -5,7 +5,7 @@
 Packer tests.
 """
 
-from erlang.term import Atom, Tuple, Pid, Reference, List
+from erlang.term import Atom, Tuple, Pid, Reference, List, NewFloat
 from erlang.packer import Packer, UnhandledClass
 from erlang.test.util import TestCase
 
@@ -259,3 +259,11 @@ class PackTestCase(TestCase):
         # The only bit changing is the one specifying the compressing level
         self.assertEquals(self.packer.termToBinary("x" * 35, compress=2),
             "\x83P\x00\x00\x00&x^\xcbfP\xae \x0c\x00<S\x10\xf7")
+
+
+    def test_new_float(self):
+        """
+        Test packing a new format float.
+        """
+        self.assertEquals(self.packer.packOneTerm(NewFloat(1.234)),
+            "?\xf3\xbev\xc8\xb49X")

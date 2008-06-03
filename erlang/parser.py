@@ -250,7 +250,7 @@ class Parser(ConstantHolder):
         """
         Parse a IEEE float number.
         """
-        raise NotImplementedError()
+        return Float(struct.unpack("!d", data[:8])[0]), data[8:]
 
 
     def parse_small_integer(self, data):

@@ -32,6 +32,16 @@ def Float(val):
 
 
 
+class NewFloat(Term):
+    """
+    Wrapper around floats to aim at serialized new floats.
+    """
+
+    def __init__(self, value):
+        self.value = value
+    
+
+
 def String(val):
     """
     Fake function for mapping erlang string.

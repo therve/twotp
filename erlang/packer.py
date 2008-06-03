@@ -115,12 +115,20 @@ class Packer(ConstantHolder):
         return packetData + "\0" * 5
 
 
+    def pack_newfloat(self, term):
+        """
+        Pack a new float.
+        """
+        return struct.pack("!d", term.value)
+
+
     def pack_str(self, term):
         """
         Pack a string.
         """
         if len(term) < self.MAX_SHORT:
-            return self.packChar(self.MAGIC_STRING) + self.packShort(len(term)) + term
+            return "%s%s%s" % (self.packChar(self.MAGIC_STRING),
+                               self.packShort(len(term)), term)
         else:
             return self.pack_list(map(lambda c: ord(c), term))
 
