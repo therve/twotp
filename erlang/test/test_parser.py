@@ -310,3 +310,13 @@ class ParseTestCase(TestCase):
         self.assertRaises(RemainingDataError, list,
             self.parser.binaryToTerms("\x83d\x00\x03foo\x01"))
 
+
+    def test_compressedData(self):
+        """
+        The parse is able to handle compressed data.
+        """
+        self.assertEquals(
+            self.parser.binaryToTerm("P\x00\x00\x00\x12x\x9c\xcbf\xe0\xaf@"
+                                     "\x05\x00@\xc8\x07\x83"),
+            ([120] * 15, ""))
+

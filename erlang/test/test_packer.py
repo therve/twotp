@@ -246,3 +246,16 @@ class PackTestCase(TestCase):
         """
         self.assertEquals(self.packer.termToBinary(123), "\x83a\x7b")
 
+
+    def test_compressed(self):
+        """
+        C{termToBinary} can compress the binary data retrieved, using
+        C{zlib.compress} with the given compression level..
+        """
+        self.assertEquals(self.packer.termToBinary("x" * 35, compress=6),
+            "\x83P\x00\x00\x00&x\x9c\xcbfP\xae \x0c\x00<S\x10\xf7")
+
+        # The string is almost the same because the amount of data is low
+        # The only bit changing is the one specifying the compressing level
+        self.assertEquals(self.packer.termToBinary("x" * 35, compress=2),
+            "\x83P\x00\x00\x00&x^\xcbfP\xae \x0c\x00<S\x10\xf7")

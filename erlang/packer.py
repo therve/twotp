@@ -6,7 +6,7 @@
 Build data for an erlang node.
 """
 
-import struct
+import struct, zlib
 
 from erlang.term import ConstantHolder, Atom
 
@@ -276,11 +276,16 @@ class Packer(ConstantHolder):
             return meth(term)
 
 
-    def termToBinary(self, term):
+    def termToBinary(self, term, compress=0):
         """
         Build a full binary to be send over the wire.
         """
-        return chr(self.MAGIC_VERSION) + self.packOneTerm(term)
+        data = self.packOneTerm(term)
+        size = len(data)
+        if compress and size >= 32:
+            data = "%s%s%s" % (chr(self.MAGIC_COMPRESSED), self.packInt(size),
+                               zlib.compress(data, compress))
+        return "%s%s" % (chr(self.MAGIC_VERSION), data)
 
 
 

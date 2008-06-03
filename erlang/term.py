@@ -443,6 +443,8 @@ class ConstantHolder(object):
     MAGIC_CACHED_ATOM = 67
     MAGIC_EXPORT = 113
     MAGIC_BIT_BINARY = 77
+    MAGIC_COMPRESSED = 80
+    MAGIC_NEW_FLOAT = 70
 
 
 

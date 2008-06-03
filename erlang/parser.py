@@ -6,7 +6,7 @@
 Parsing of data received from erlang node or epmd.
 """
 
-import struct
+import struct, zlib
 
 from erlang.term import Integer, String, List, Tuple, Float, Atom, Reference
 from erlang.term import Port, Pid, Binary, Fun, NewFun, Export, BitBinary
@@ -78,6 +78,17 @@ class Parser(ConstantHolder):
         Parse version shouldn't be called.
         """
         raise RuntimeError("Should not ne here!")
+
+
+    def parse_compressed(self, data):
+        """
+        Parse compressed data.
+        """
+        length = self.parseInt(data[:4])
+        uncompressedData = zlib.decompress(data[4:], 15, length)
+        if len(uncompressedData) != length:
+            raise ValueError("Too big uncompressed data")
+        return self.binaryToTerm(uncompressedData)
 
 
     def parse_string(self, data):
@@ -233,6 +244,13 @@ class Parser(ConstantHolder):
             floatStr = floatData
         floatValue = float(floatStr)
         return Float(floatValue), data[31:]
+
+
+    def parse_new_float(self, data):
+        """
+        Parse a IEEE float number.
+        """
+        raise NotImplementedError()
 
 
     def parse_small_integer(self, data):
