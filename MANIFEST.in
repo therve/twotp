@@ -1,0 +1,2 @@
+recursive-include doc/ *.xhtml
+recursive-include examples/ *.py
