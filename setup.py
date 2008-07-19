@@ -8,14 +8,14 @@ from distutils.core import setup
 def main():
     setup(
         name="twotp",
-        version="0.3",
+        version="0.4",
         description=("Twotp is an implementation of the Erlang node protocol "
                      "written in Python, using the Twisted networking engine"),
         author="Thomas Herve",
         author_email="therve@free.fr",
         license="MIT",
         url="http://launchpad.net/twotp",
-        packages=["twotp", "twotp/test" "twisted/plugins"]
+        packages=["twotp", "twotp/test", "twisted/plugins"]
     )
 
 if __name__ == "__main__":

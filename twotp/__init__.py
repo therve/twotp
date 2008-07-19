@@ -14,6 +14,10 @@ from twotp.node import buildNodeName, readCookie
 
 
 
+version = 0.4
+
+
+
 __all__ = ["NodeServerFactory", "NodeClientFactory",
            "PersistentPortMapperFactory", "buildNodeName", "readCookie",
-           "OneShotPortMapperFactory", "Tuple", "Atom", "String"]
+           "OneShotPortMapperFactory", "Tuple", "Atom", "String", "version"]
