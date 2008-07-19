@@ -1,4 +1,4 @@
-# -*- test-case-name: erlang.test.test_node -*-
+# -*- test-case-name: twotp.test.test_node -*-
 # Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
@@ -11,9 +11,9 @@ import md5, os, time, random
 from twisted.internet import protocol, defer
 from twisted.python import log
 
-from erlang.term  import Tuple, Atom, Integer, Reference, Pid, List, Port
-from erlang.packer import termToBinary, thePacker
-from erlang.parser import binaryToTerms, theParser
+from twotp.term  import Tuple, Atom, Integer, Reference, Pid, List, Port
+from twotp.packer import termToBinary, thePacker
+from twotp.parser import binaryToTerms, theParser
 
 
 

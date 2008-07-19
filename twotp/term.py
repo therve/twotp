@@ -1,4 +1,4 @@
-# -*- test-case-name: erlang.test.test_term -*-
+# -*- test-case-name: twotp.test.test_term -*-
 # Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 

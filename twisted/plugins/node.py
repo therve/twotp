@@ -13,8 +13,8 @@ from twisted.application.service import IServiceMaker
 from twisted.python.usage import Options
 from twisted.python.reflect import namedAny
 
-from erlang.epmd import PersistentPortMapperService
-from erlang import readCookie, buildNodeName
+from twotp.epmd import PersistentPortMapperService
+from twotp import readCookie, buildNodeName
 
 
 

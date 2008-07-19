@@ -15,7 +15,7 @@ gtk2reactor.install()
 
 from twisted.internet import reactor
 
-from erlang import OneShotPortMapperFactory, readCookie, buildNodeName, Atom
+from twotp import OneShotPortMapperFactory, readCookie, buildNodeName, Atom
 
 
 

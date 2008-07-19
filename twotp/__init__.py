@@ -1,4 +1,4 @@
-# -*- test-case-name: erlang.test -*-
+# -*- test-case-name: twotp.test -*-
 # Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
@@ -6,11 +6,11 @@
 Twisted as an erlang node.
 """
 
-from erlang.term import Tuple, Atom, String
-from erlang.server import NodeServerFactory
-from erlang.client import NodeClientFactory
-from erlang.epmd import PersistentPortMapperFactory, OneShotPortMapperFactory
-from erlang.node import buildNodeName, readCookie
+from twotp.term import Tuple, Atom, String
+from twotp.server import NodeServerFactory
+from twotp.client import NodeClientFactory
+from twotp.epmd import PersistentPortMapperFactory, OneShotPortMapperFactory
+from twotp.node import buildNodeName, readCookie
 
 
 

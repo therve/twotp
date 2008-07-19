@@ -10,12 +10,12 @@ from twisted.internet.error import ConnectionDone
 from twisted.internet import address
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
-from erlang.term import Node
-from erlang.epmd import PortMapperProtocol, PersistentPortMapperFactory
-from erlang.epmd import OneShotPortMapperFactory, NodeNotFound
+from twotp.term import Node
+from twotp.epmd import PortMapperProtocol, PersistentPortMapperFactory
+from twotp.epmd import OneShotPortMapperFactory, NodeNotFound
 
-from erlang.test.test_client import DummyClientFactory
-from erlang.test.util import TestCase
+from twotp.test.test_client import DummyClientFactory
+from twotp.test.util import TestCase
 
 
 

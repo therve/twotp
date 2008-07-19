@@ -9,8 +9,8 @@ from twisted.internet.task import Clock
 from twisted.internet.defer import Deferred
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
-from erlang.server import NodeServerProtocol, NodeServerFactory
-from erlang.test.util import TestCase
+from twotp.server import NodeServerProtocol, NodeServerFactory
+from twotp.test.util import TestCase
 
 
 

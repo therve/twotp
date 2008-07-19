@@ -1,4 +1,4 @@
-# -*- test-case-name: erlang.test.test_packer-*-
+# -*- test-case-name: twotp.test.test_packer-*-
 # Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
@@ -8,7 +8,7 @@ Build data for an erlang node.
 
 import struct, zlib
 
-from erlang.term import ConstantHolder, Atom
+from twotp.term import ConstantHolder, Atom
 
 
 

@@ -1,4 +1,4 @@
-# -*- test-case-name: erlang.test.test_client -*-
+# -*- test-case-name: twotp.test.test_client -*-
 # Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
@@ -12,9 +12,9 @@ from twisted.python import log
 from twisted.internet.protocol import ClientFactory
 from twisted.internet.defer import Deferred
 
-from erlang.node import NodeProtocol, NodeBaseFactory, InvalidIdentifier, InvalidDigest
-from erlang.parser import theParser
-from erlang.packer import thePacker
+from twotp.node import NodeProtocol, NodeBaseFactory, InvalidIdentifier, InvalidDigest
+from twotp.parser import theParser
+from twotp.packer import thePacker
 
 
 

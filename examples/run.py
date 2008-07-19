@@ -11,8 +11,8 @@ import sys
 from twisted.python import log
 from twisted.internet import reactor
 
-from erlang import PersistentPortMapperFactory, Tuple, Atom, String
-from erlang import OneShotPortMapperFactory, readCookie, buildNodeName
+from twotp import PersistentPortMapperFactory, Tuple, Atom, String
+from twotp import OneShotPortMapperFactory, readCookie, buildNodeName
 
 
 

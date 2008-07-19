@@ -9,9 +9,9 @@ from twisted.internet.task import Clock
 from twisted.internet.defer import Deferred
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
-from erlang.node import NodeProtocol, buildNodeName, getHostName, MessageHandler
-from erlang.term import Pid, Atom, Reference
-from erlang.test.util import TestCase
+from twotp.node import NodeProtocol, buildNodeName, getHostName, MessageHandler
+from twotp.term import Pid, Atom, Reference
+from twotp.test.util import TestCase
 
 
 
@@ -165,7 +165,8 @@ class NodeProtocolTestCase(TestCase):
 
     def test_generateChallenge(self):
         """
-        Test output value of generateChallenge: it should truncate data on 28 bits.
+        Test output value of generateChallenge: it should truncate data on 28
+        bits.
         """
         self.assertEquals(self.proto.generateChallenge(), 2)
         data = [0x7fffffff + 2]

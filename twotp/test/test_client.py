@@ -10,8 +10,8 @@ from twisted.internet.defer import Deferred
 from twisted.internet.error import ConnectionDone
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
-from erlang.client import NodeClientProtocol, NodeClientFactory
-from erlang.test.util import TestCase
+from twotp.client import NodeClientProtocol, NodeClientFactory
+from twotp.test.util import TestCase
 
 
 

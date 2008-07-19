@@ -15,7 +15,7 @@ def main():
         author_email="therve@free.fr",
         license="MIT",
         url="http://launchpad.net/twotp",
-        packages=["erlang", "erlang/test" "twisted/plugins"]
+        packages=["twotp", "twotp/test" "twisted/plugins"]
     )
 
 if __name__ == "__main__":

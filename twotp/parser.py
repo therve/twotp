@@ -1,4 +1,4 @@
-# -*- test-case-name: erlang.test.test_parser -*-
+# -*- test-case-name: twotp.test.test_parser -*-
 # Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
@@ -8,9 +8,9 @@ Parsing of data received from erlang node or epmd.
 
 import struct, zlib
 
-from erlang.term import Integer, String, List, Tuple, Float, Atom, Reference
-from erlang.term import Port, Pid, Binary, Fun, NewFun, Export, BitBinary
-from erlang.term import ConstantHolder, Dict, Set
+from twotp.term import Integer, String, List, Tuple, Float, Atom, Reference
+from twotp.term import Port, Pid, Binary, Fun, NewFun, Export, BitBinary
+from twotp.term import ConstantHolder, Dict, Set
 
 
 

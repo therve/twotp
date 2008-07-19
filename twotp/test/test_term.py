@@ -5,8 +5,8 @@
 Test basic term functionalities.
 """
 
-from erlang.term import Atom, AtomNotInCache
-from erlang.test.util import TestCase
+from twotp.term import Atom, AtomNotInCache
+from twotp.test.util import TestCase
 
 
 

@@ -1,4 +1,4 @@
-# -*- test-case-name: erlang.test.test_server -*-
+# -*- test-case-name: twotp.test.test_server -*-
 # Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
@@ -11,8 +11,8 @@ import struct
 from twisted.internet.protocol import ServerFactory
 from twisted.python import log
 
-from erlang.node import NodeProtocol, NodeBaseFactory, InvalidIdentifier, InvalidDigest
-from erlang.parser import theParser
+from twotp.node import NodeProtocol, NodeBaseFactory, InvalidIdentifier, InvalidDigest
+from twotp.parser import theParser
 
 
 

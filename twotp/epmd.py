@@ -1,4 +1,4 @@
-# -*- test-case-name: erlang.test.test_epmd -*-
+# -*- test-case-name: twotp.test.test_epmd -*-
 # Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
@@ -14,11 +14,11 @@ from twisted.python import log
 from twisted.application.service import Service
 from twisted.application.internet import TCPClient, TCPServer
 
-from erlang.parser import theParser
-from erlang.packer import thePacker
-from erlang.term import Node
-from erlang.client import NodeClientFactory
-from erlang.server import NodeServerFactory
+from twotp.parser import theParser
+from twotp.packer import thePacker
+from twotp.term import Node
+from twotp.client import NodeClientFactory
+from twotp.server import NodeServerFactory
 
 
 

@@ -5,10 +5,10 @@
 Parser tests.
 """
 
-from erlang.term import Atom, Tuple, Pid, Reference, Integer, String, List
-from erlang.term import Float, Port, Binary, Fun, NewFun, Export, BitBinary
-from erlang.parser import Parser, RemainingDataError, UnhandledCode
-from erlang.test.util import TestCase
+from twotp.term import Atom, Tuple, Pid, Reference, Integer, String, List
+from twotp.term import Float, Port, Binary, Fun, NewFun, Export, BitBinary
+from twotp.parser import Parser, RemainingDataError, UnhandledCode
+from twotp.test.util import TestCase
 
 
 
@@ -69,7 +69,9 @@ class ParseTestCase(TestCase):
         """
         Try parsing a large tuple of integers.
         """
-        self.assertEquals(self.parser.binaryToTerm("i\x00\x00\x00\x02a\x05a\x04"), (Tuple([5, 4]), ""))
+        self.assertEquals(
+            self.parser.binaryToTerm("i\x00\x00\x00\x02a\x05a\x04"),
+            (Tuple([5, 4]), ""))
 
 
     def test_parseLargeBig(self):

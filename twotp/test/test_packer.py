@@ -5,9 +5,9 @@
 Packer tests.
 """
 
-from erlang.term import Atom, Tuple, Pid, Reference, List, NewFloat
-from erlang.packer import Packer, UnhandledClass
-from erlang.test.util import TestCase
+from twotp.term import Atom, Tuple, Pid, Reference, List, NewFloat
+from twotp.packer import Packer, UnhandledClass
+from twotp.test.util import TestCase
 
 
 
