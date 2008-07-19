@@ -1,4 +1,7 @@
 Things to do when making a release:
  * bump version in setup.py
  * bump version in twotp/__init__.py
- * run python setup.py sdist
+ * run python setup.py sdist upload --sign
+ * go to https://launchpad.net/twotp/trunk/+addrelease and register a new release
+ * go to https://launchpad.net/twotp/trunk/X.Y/+adddownloadfile
+ * upload the file and the signature
