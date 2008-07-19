@@ -25,8 +25,8 @@
     <p>
         To create connection to an erlang node, you'll need to get the cookie
         and create a node name. The utility functions
-        <code class="API" base="erlange.node">readCookie</code>
-        and  <code class="API" base="erlang.node">buildNodeName</code>
+        <code class="API" base="twotp.node">readCookie</code>
+        and  <code class="API" base="twotp.node">buildNodeName</code>
         are here to help you out: the first read the cookie at the usual
         place ($HOME/.erlang.cookie), the second append the name of the
         host to the name you have chosen.
@@ -34,7 +34,7 @@
 
     <p>
         Then, instantiate the class
-        <code class="API" base="erlang.epmd">OneShotPortMapperFactory</code>
+        <code class="API" base="twotp.epmd">OneShotPortMapperFactory</code>
         with the infos, and call connectionToNode on it. This method will:
         <ul>
             <li>create a connection with the EPMD</li>
@@ -54,7 +54,7 @@
 
     <pre class="python">
 from twisted.internet import reactor
-from erlang import OneShotPortMapperFactory, readCookie, buildNodeName
+from twotp import OneShotPortMapperFactory, readCookie, buildNodeName
 
 def gotConnection(inst):
     return inst.factory.callRemote(inst, "file", "get_cwd"
@@ -90,7 +90,7 @@ reactor.run()
 
     <pre class="python">
 from twisted.internet import reactor
-from erlang import PersistentPortMapperFactory, readCookie, buildNodeName
+from twotp import PersistentPortMapperFactory, readCookie, buildNodeName
 
 cookie = readCookie()
 nodeName = buildNodeName('nodename')
@@ -102,7 +102,7 @@ reactor.run()
     <p>
         Once you have the node name and the cookie (see above to understand
         how), you create a
-        <code class="API" base="erlang.epmd">PersistentPortMapperFactory</code>
+        <code class="API" base="twotp.epmd">PersistentPortMapperFactory</code>
         instance, and call publish on it: it will create the node, make it
         listen on an arbitrary port, and connect to the EPMD to publish the
         information.
@@ -129,7 +129,7 @@ class Proxy(object):
         return arg * 2
 
 from twisted.internet import reactor
-from erlang import PersistentPortMapperFactory, readCookie, buildNodeName
+from twotp import PersistentPortMapperFactory, readCookie, buildNodeName
 
 cookie = readCookie()
 nodeName = buildNodeName('nodename')
@@ -224,7 +224,7 @@ ok
 
     <pre class="python">
 from twisted.internet import reactor
-from erlang import OneShotPortMapperFactory, readCookie, buildNodeName
+from twotp import OneShotPortMapperFactory, readCookie, buildNodeName
 
 def gotConnection(inst):
     return inst.factory.callRemote(inst, "twisted", "get_user", 1
