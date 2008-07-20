@@ -5,3 +5,12 @@ Things to do when making a release:
  * go to https://launchpad.net/twotp/trunk/+addrelease and register a new release
  * go to https://launchpad.net/twotp/trunk/X.Y/+adddownloadfile
  * upload the file and the signature
+ * bzr branch trunk python-twotp-X.Y
+ * rm -rf python-twotp-X.Y/.bzr
+ * tar cvzf python-twotp_X.Y.orig.tar.gz python-twotp-X.Y
+ * bzr branch trunk package-X.Y
+ * bzr merge  bzr+ssh://therve@bazaar.launchpad.net/%7Etherve/twotp/debian/ package-X.Y
+ * rm -rf package-X.Y/.bzr
+ * cd package-X.Y && debuild -S && cd ..
+ * dput -f my-ppa python-twotp_X.Y-1_source.changes
+ * test the uploaded package, and copy it in twotp ppa once done (https://launchpad.net/~therve/+archive/+copy-packages)
