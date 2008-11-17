@@ -118,6 +118,10 @@ class ParseTestCase(TestCase):
                 "\x32\x32\x32\x32\x32\x32\x32\x32\x32\x32\x32\x32\x32\x32\x32"
                 "\x32\x32\x32\x32\x32\x32\x32"),
             (Float(12.34222222222222222222222222222), ""))
+        self.assertEquals(
+            self.parser.binaryToTerm("c-5.6779999999999999360"
+                "5e+00\x00\x00\x00\x00"),
+            (Float(-5.678), ""))
 
 
     def test_parseInteger(self):

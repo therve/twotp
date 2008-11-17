@@ -112,7 +112,8 @@ class Packer(ConstantHolder):
         term = "%.20e" % (term,)
         packetData = self.packChar(self.MAGIC_FLOAT)
         packetData += term
-        return packetData + "\0" * 5
+        nullPadStr = "\0" * (31 - len(term))
+        return packetData + nullPadStr
 
 
     def pack_newfloat(self, term):

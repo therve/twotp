@@ -125,6 +125,8 @@ class PackTestCase(TestCase):
         """
         self.assertEquals(self.packer.packOneTerm(1.234),
             "c1.23399999999999998579e+00\x00\x00\x00\x00\x00")
+        self.assertEquals(self.packer.packOneTerm(-5.678),
+            "c-5.67799999999999993605e+00\x00\x00\x00\x00")
 
 
     def test_packString(self):
