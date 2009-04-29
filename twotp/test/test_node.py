@@ -10,6 +10,7 @@ from twisted.internet.defer import Deferred
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
 from twotp.node import NodeProtocol, buildNodeName, getHostName, MessageHandler
+from twotp.node import BadRPC
 from twotp.term import Pid, Atom, Reference
 from twotp.test.util import TestCase
 
@@ -430,7 +431,7 @@ class MessageHandlerTestCase(TestCase):
             "\x00\x00\x00\x00\x00d\x00\x03yes")
 
 
-    def test_send_ping(self):
+    def test_sendPing(self):
         """
         Check successful ping request.
         """
@@ -456,6 +457,80 @@ class MessageHandlerTestCase(TestCase):
         yes = Atom("yes")
         self.handler.operation_send(proto, (Atom(""), pid), (ref, yes))
         return d
+
+
+    def test_callRemote(self):
+        """
+        C{callRemote]} is able to serialize arguments and pass the method call
+        via a B{rex} format, and handle response.
+        """
+        factory = DummyFactory()
+        proto = TestableNodeProtocol()
+        transport = CloseNotifiedTransport()
+        proto.factory = factory
+        proto.makeConnection(transport)
+        transport.protocol = proto
+        self.assertEquals(transport.value(), "")
+        self.handler.nodeName = "foo@bar"
+        d = self.handler.callRemote(
+            proto, "some_module", "some_func", 1, "foo")
+        d.addCallback(self.assertEquals, [2, "bar"])
+        self.assertEquals(transport.value(),
+            "\x00rp\x83h\x04a\x06gd\x00\x07foo@bar\x00\x00\x00\x00\x00\x00"
+            "\x00\x00\x00d\x00\x00d\x00\x03rex\x83h\x02gd\x00\x07foo@bar\x00"
+            "\x00\x00\x00\x00\x00\x00\x00\x00h\x05d\x00\x04calld\x00\x0b"
+            "some_moduled\x00\tsome_funcl\x00\x00\x00\x02a\x01k\x00\x03"
+            "foojd\x00\x04user")
+        proto.state = "connected"
+        pid = Pid(Atom("foo@bar"), 0, 0, 0)
+        self.handler.operation_send(
+            proto, (Atom(""), pid), (Atom("rex"), [2, "bar"]))
+        return d
+
+
+    def test_callRemoteListResult(self):
+        """
+        If the result of a callRemote is an empty list, it correctly passes it
+        to the caller: previously error detection of B{badrpc} broke it.
+        """
+        factory = DummyFactory()
+        proto = TestableNodeProtocol()
+        transport = CloseNotifiedTransport()
+        proto.factory = factory
+        proto.makeConnection(transport)
+        transport.protocol = proto
+        self.assertEquals(transport.value(), "")
+        self.handler.nodeName = "foo@bar"
+        d = self.handler.callRemote(
+            proto, "some_module", "some_func", 1, "foo")
+        d.addCallback(self.assertEquals, [])
+        proto.state = "connected"
+        pid = Pid(Atom("foo@bar"), 0, 0, 0)
+        self.handler.operation_send(
+            proto, (Atom(""), pid), (Atom("rex"), []))
+        return d
+
+
+    def test_callRemoteError(self):
+        """
+        If a response of a C{callRemote} contains a B{badrpc} atom, the
+        callRemote returns a C{BadRPC} failure.
+        """
+        factory = DummyFactory()
+        proto = TestableNodeProtocol()
+        transport = CloseNotifiedTransport()
+        proto.factory = factory
+        proto.makeConnection(transport)
+        transport.protocol = proto
+        self.assertEquals(transport.value(), "")
+        self.handler.nodeName = "foo@bar"
+        d = self.handler.callRemote(
+            proto, "some_module", "some_func", 1, "foo")
+        proto.state = "connected"
+        pid = Pid(Atom("foo@bar"), 0, 0, 0)
+        self.handler.operation_send(
+            proto, (Atom(""), pid), (Atom("rex"), (Atom("badrpc"), Atom("EXIT"))))
+        return self.assertFailure(d, BadRPC)
 
 
     def test_receiveRPC(self):

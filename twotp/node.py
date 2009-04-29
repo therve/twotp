@@ -30,6 +30,11 @@ class InvalidDigest(ValueError):
     """
 
 
+class BadRPC(ValueError):
+    """
+    Exception raised when receiving a B{badrpc} answer to a callRemote.
+    """
+
 
 class MessageHandler(object):
     """
@@ -299,8 +304,9 @@ class MessageHandler(object):
         self._pendingResponses.setdefault(srcPid, []).append(d)
         proto.send("p" + termToBinary(ctrlMsg) + termToBinary(rpc))
         def cb((ctrlMessage, message)):
-            if isinstance(message[1], (list, tuple)) and message[1][0] == Atom("badrpc"):
-                raise ValueError(message[1][1])
+            if (isinstance(message[1], (list, tuple)) and
+                len(message[1]) > 0 and message[1][0] == Atom("badrpc")):
+                raise BadRPC(message[1][1])
             return message[1]
         d.addCallback(cb)
         return d

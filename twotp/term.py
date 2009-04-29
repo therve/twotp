@@ -39,7 +39,7 @@ class NewFloat(Term):
 
     def __init__(self, value):
         self.value = value
-    
+
 
 
 def String(val):
