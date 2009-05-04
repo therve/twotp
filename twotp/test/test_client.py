@@ -11,6 +11,7 @@ from twisted.internet.error import ConnectionDone
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
 from twotp.client import NodeClientProtocol, NodeClientFactory
+from twotp.parser import theParser
 from twotp.test.util import TestCase
 
 
@@ -44,6 +45,7 @@ class DummyClientFactory(object):
         self.cookie = "test_cookie"
         self.netTickTime = 30
         self._connectDeferred = Deferred()
+        self._parser = theParser
 
 
     def timeFactory(self):
@@ -80,7 +82,7 @@ class NodeClientProtocolTestCase(TestCase):
         self.clock = Clock()
         self.proto.callLater = self.clock.callLater
         self.assertEquals(self.transport.value(),
-            "\x00\x0fn\x00\x05\x00\x00\x01\x04spam@egg")
+            "\x00\x0fn\x00\x05\x00\x00\x01\x0cspam@egg")
         self.transport.clear()
 
 

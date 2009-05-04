@@ -195,6 +195,10 @@ class Pid(Term):
         self.nodeId = nodeId
         self.serial = serial
         self.creation = creation
+        self._links = set()
+        self._remoteMonitors = set()
+        self._handlers = {}
+        self._monitorHandlers = {}
 
 
     def __eq__(self, other):
@@ -226,6 +230,105 @@ class Pid(Term):
                      self.creation))
 
 
+    def link(self, proto, pid, _received=False):
+        """
+        Link this process to another (remote) C{pid}.
+        """
+        self._links.add((proto, pid))
+        if not _received:
+            proto.factory.sendLink(proto, self, pid)
+
+
+    def unlink(self, proto, pid, _received=False):
+        """
+        Remove a previously created link to remove process C{pid}.
+        """
+        if (proto, pid) in self._links:
+            self._links.remove((proto, pid))
+        if not _received:
+            proto.factory.sendUnlink(proto, self, pid)
+
+
+    def monitor(self, proto, pid):
+        """
+        Register a monitoring on remote process C{pid}.
+        """
+        return proto.factory.sendMonitor(proto, self, pid)
+
+
+    def demonitor(self, proto, pid, ref):
+        """
+        Unregister a monitoring on remote process C{pid}.
+        """
+        return proto.factory.sendDemonitor(proto, self, pid, ref)
+
+
+    def _remoteMonitor(self, proto, pid, ref):
+        """
+        Register a monitoring by remote process C{pid}. This method should not
+        be called by application code, it's a reflect of a call from an Erlang
+        node.
+        """
+        self._remoteMonitors.add((proto, pid, ref))
+
+
+    def _remoteDemonitor(self, proto, pid, ref):
+        """
+        Unregister a previous monitoring operation. This method should not be
+        called by application code, it's a reflect of a call from an Erlang
+        node.
+        """
+        if (proto, pid, ref) in self._remoteMonitors:
+            self._remoteMonitors.remove((proto, pid, ref))
+
+
+    def exit(self, reason):
+        """
+        Exit this local process, propagating the exit signal to remote linked
+        processes.
+        """
+        for proto, pid in self._links:
+            proto.factory.sendLinkExit(proto, self, pid, reason)
+        self._links.clear()
+        for proto, pid, ref in self._remoteMonitors:
+            proto.factory.sendMonitorExit(proto, self, pid, ref, reason)
+        self._remoteMonitors.clear()
+
+
+    def addExitHandler(self, pid, handler):
+        """
+        Register a callback to be called when C{pid} exits.
+        """
+        self._handlers.setdefault(pid, []).append(handler)
+
+
+    def _signalExit(self, pid, reason):
+        """
+        Signal remote exit of process C{pid}.
+        """
+        for handler in self._handlers.pop(pid, []):
+            handler(reason)
+        for proto, linkedPid in list(self._links):
+            if linkedPid == pid:
+                self._links.remove((proto, linkedPid))
+
+
+    def addMonitorHandler(self, ref, handler):
+        """
+        Register a callback to be called when monitoring L{Reference} C{ref}
+        fires.
+        """
+        self._monitorHandlers.setdefault(ref, []).append(handler)
+
+
+    def _signalMonitorExit(self, pid, ref, reason):
+        """
+        Signal remote exit of process C{pid} via monitor.
+        """
+        for handler in self._monitorHandlers.pop(ref, []):
+            handler(reason)
+
+
 
 class Reference(Term):
     """
@@ -237,6 +340,8 @@ class Reference(Term):
         Initialize attributes.
         """
         self.nodeName = nodeName
+        if isinstance(refIds, list):
+            refIds = tuple(refIds)
         self.refIds = refIds
         self.creation = creation
 
@@ -487,4 +592,3 @@ class Node(object):
                 self.protocol == other.protocol and
                 self.distrVSNRng == other.distrVSNRng and
                 self.nodeName == other.nodeName and self.extra == other.extra)
-

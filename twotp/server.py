@@ -12,7 +12,6 @@ from twisted.internet.protocol import ServerFactory
 from twisted.python import log
 
 from twotp.node import NodeProtocol, NodeBaseFactory, InvalidIdentifier, InvalidDigest
-from twotp.parser import theParser
 
 
 
@@ -35,14 +34,14 @@ class NodeServerProtocol(NodeProtocol):
         """
         if len(data) < 2:
             return data
-        packetLen = theParser.parseShort(data[0:2])
+        packetLen = self.factory._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
         packetData = data[2:packetLen+2]
         if packetData[0] != "n":
             raise InvalidIdentifier("Got %r instead of 'n'" % (packetData[0],))
-        self.peerVersion = theParser.parseShort(packetData[1:3])
-        self.peerFlags = theParser.parseInt(packetData[3:7])
+        self.peerVersion = self.factory._parser.parseShort(packetData[1:3])
+        self.peerFlags = self.factory._parser.parseInt(packetData[3:7])
         self.peerName = packetData[7:]
         self.send("sok")
         self.sendChallenge()
@@ -56,13 +55,13 @@ class NodeServerProtocol(NodeProtocol):
         """
         if len(data) < 2:
             return data
-        packetLen = theParser.parseShort(data[0:2])
+        packetLen = self.factory._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
         packetData = data[2:packetLen+2]
         if packetData[0] != "r":
             raise InvalidIdentifier("Got %r instead of 'r'" % (packetData[0],))
-        peerChallenge = theParser.parseInt(packetData[1:5])
+        peerChallenge = self.factory._parser.parseInt(packetData[1:5])
         peerDigest = packetData[5:]
         ownDigest = self.generateDigest(self.challenge, self.factory.cookie)
         if peerDigest != ownDigest:
@@ -111,5 +110,3 @@ class NodeServerFactory(NodeBaseFactory, ServerFactory):
         Callback fired when connected to the EPMD.
         """
         self.creation = creation
-
-

@@ -8,7 +8,7 @@ Parsing of data received from erlang node or epmd.
 
 import struct, zlib
 
-from twotp.term import Integer, String, List, Tuple, Float, Atom, Reference
+from twotp.term import Integer, List, Tuple, Float, Atom, Reference
 from twotp.term import Port, Pid, Binary, Fun, NewFun, Export, BitBinary
 from twotp.term import ConstantHolder, Dict, Set
 
@@ -453,3 +453,27 @@ theParser = Parser()
 
 binaryToTerms = theParser.binaryToTerms
 
+
+
+class ParserWithPidCache(Parser):
+    """
+    A L{Parser} with a local cache of PID, returning the same instances for
+    PID data.
+    """
+
+    def __init__(self):
+        Parser.__init__(self)
+        self._pids = {}
+
+
+    def parse_pid(self, data):
+        """
+        Upcall C{parse_pid}, cache the instance if necessary or return the
+        instance from the cache.
+        """
+        pid, data = Parser.parse_pid(self, data)
+        if pid in self._pids:
+            pid = self._pids[pid]
+        else:
+            self._pids[pid] = pid
+        return pid, data

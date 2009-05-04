@@ -13,7 +13,6 @@ from twisted.internet.protocol import ClientFactory
 from twisted.internet.defer import Deferred
 
 from twotp.node import NodeProtocol, NodeBaseFactory, InvalidIdentifier, InvalidDigest
-from twotp.parser import theParser
 from twotp.packer import thePacker
 
 
@@ -47,7 +46,7 @@ class NodeClientProtocol(NodeProtocol):
         """
         if len(data) < 2:
             return data
-        packetLen = theParser.parseShort(data[0:2])
+        packetLen = self.factory._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
         packetData = data[2:packetLen+2]
@@ -75,7 +74,7 @@ class NodeClientProtocol(NodeProtocol):
         """
         if len(data) < 2:
             return data
-        packetLen = theParser.parseShort(data[0:2])
+        packetLen = self.factory._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
         packetData = data[2:packetLen+2]
@@ -98,7 +97,7 @@ class NodeClientProtocol(NodeProtocol):
         """
         if len(data) < 2:
             return data
-        packetLen = theParser.parseShort(data[0:2])
+        packetLen = self.factory._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
         packetData = data[2:packetLen+2]
@@ -195,4 +194,3 @@ class NodeClientFactory(NodeBaseFactory, ClientFactory):
         Forward call to notify EPMD client.
         """
         self.onConnectionLost(self)
-

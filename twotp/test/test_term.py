@@ -5,7 +5,7 @@
 Test basic term functionalities.
 """
 
-from twotp.term import Atom, AtomNotInCache
+from twotp.term import Atom, AtomNotInCache, Reference
 from twotp.test.util import TestCase
 
 
@@ -46,3 +46,10 @@ class TermTestCase(TestCase):
         """
         self.assertRaises(AtomNotInCache, Atom, None, 1)
 
+
+    def test_reference_hash(self):
+        """
+        L{Reference} instances are hashable.
+        """
+        r = Reference(Atom("foo@bar"), [1, 0, 0], 0)
+        self.assertIsInstance(hash(r), int)

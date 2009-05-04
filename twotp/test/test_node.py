@@ -12,6 +12,7 @@ from twisted.test.proto_helpers import StringTransportWithDisconnection
 from twotp.node import NodeProtocol, buildNodeName, getHostName, MessageHandler
 from twotp.node import BadRPC
 from twotp.term import Pid, Atom, Reference
+from twotp.parser import theParser
 from twotp.test.util import TestCase
 
 
@@ -45,6 +46,7 @@ class DummyFactory(object):
         self.cookie = "test_cookie"
         self.netTickTime = 1
         self.creation = 2
+        self._parser = theParser
 
 
     def timeFactory(self):
@@ -255,18 +257,37 @@ class MessageHandlerTestCase(TestCase):
         """
         Test handling of a LINK token.
         """
-        self.assertRaises(NotImplementedError,
-            self.handler.passThroughMessage, None,
-            (self.handler.CTRLMSGOP_LINK,), None)
+        srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
+        destPid = Pid(Atom("spam@egg"), 0, 0, 0)
+        ctrlMessage = (self.handler.CTRLMSGOP_LINK, srcPid, destPid)
+        self.handler.passThroughMessage(None, ctrlMessage, None)
+        self.assertEquals(destPid._links, set([(None, srcPid)]))
+
+
+    def test_unlinkNotExisting(self):
+        """
+        Test handling of an UNLINK token while the link doesn't exit locally.
+        """
+        srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
+        destPid = Pid(Atom("spam@egg"), 0, 0, 0)
+        ctrlMessage = (self.handler.CTRLMSGOP_UNLINK, srcPid, destPid)
+        self.handler.passThroughMessage(None, ctrlMessage, None)
+        self.assertEquals(destPid._links, set([]))
 
 
     def test_unlink(self):
         """
         Test handling of an UNLINK token.
         """
-        self.assertRaises(NotImplementedError,
-            self.handler.passThroughMessage, None,
-            (self.handler.CTRLMSGOP_UNLINK,), None)
+        srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
+        destPid = Pid(Atom("spam@egg"), 0, 0, 0)
+        destPid.link(None, srcPid, _received=True)
+        # Sanity check
+        self.assertNotEquals(destPid._links, set([]))
+
+        ctrlMessage = (self.handler.CTRLMSGOP_UNLINK, srcPid, destPid)
+        self.handler.passThroughMessage(None, ctrlMessage, None)
+        self.assertEquals(destPid._links, set([]))
 
 
     def test_nodeLink(self):
@@ -287,13 +308,36 @@ class MessageHandlerTestCase(TestCase):
             (self.handler.CTRLMSGOP_GROUP_LEADER,), None)
 
 
+    def test_exit(self):
+        """
+        Test handling EXIT token.
+        """
+        srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
+        destPid = Pid(Atom("spam@egg"), 0, 0, 0)
+        destPid.link(None, srcPid, _received=True)
+        called = []
+        destPid.addExitHandler(srcPid, lambda *args: called.append(args))
+
+        ctrlMessage = (self.handler.CTRLMSGOP_EXIT, srcPid, destPid, "reason")
+        self.handler.passThroughMessage(None, ctrlMessage, None)
+        self.assertEquals(called, [("reason",)])
+        self.assertEquals(destPid._links, set([]))
+
+
     def test_exit2(self):
         """
         Test handling of an EXIT2 token.
         """
-        self.assertRaises(NotImplementedError,
-            self.handler.passThroughMessage, None,
-            (self.handler.CTRLMSGOP_EXIT2,), None)
+        srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
+        destPid = Pid(Atom("spam@egg"), 0, 0, 0)
+        destPid.link(None, srcPid, _received=True)
+        called = []
+        destPid.addExitHandler(srcPid, lambda *args: called.append(args))
+
+        ctrlMessage = (self.handler.CTRLMSGOP_EXIT2, srcPid, destPid, "reason")
+        self.handler.passThroughMessage(None, ctrlMessage, None)
+        self.assertEquals(called, [("reason",)])
+        self.assertEquals(destPid._links, set([]))
 
 
     def test_sendTT(self):
@@ -317,45 +361,105 @@ class MessageHandlerTestCase(TestCase):
         """
         Test handling of an EXIT_TT token.
         """
-        self.assertRaises(NotImplementedError,
-            self.handler.passThroughMessage, None,
-            (self.handler.CTRLMSGOP_EXIT_TT, None, None, "TOKEN"), None)
+        srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
+        destPid = Pid(Atom("spam@egg"), 0, 0, 0)
+        destPid.link(None, srcPid, _received=True)
+        called = []
+        destPid.addExitHandler(srcPid, lambda *args: called.append(args))
+
+        ctrlMessage = (self.handler.CTRLMSGOP_EXIT_TT, srcPid, destPid,
+                       "reason", "TOKEN")
+        self.handler.passThroughMessage(None, ctrlMessage, None)
+        self.assertEquals(called, [("reason",)])
+        self.assertEquals(destPid._links, set([]))
 
 
     def test_exit2TT(self):
         """
         Test handling of an EXIT2_TT token.
         """
-        self.assertRaises(NotImplementedError,
-            self.handler.passThroughMessage, None,
-            (self.handler.CTRLMSGOP_EXIT2_TT, None, None, "TOKEN"), None)
+        srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
+        destPid = Pid(Atom("spam@egg"), 0, 0, 0)
+        destPid.link(None, srcPid, _received=True)
+        called = []
+        destPid.addExitHandler(srcPid, lambda *args: called.append(args))
+
+        ctrlMessage = (self.handler.CTRLMSGOP_EXIT2_TT, srcPid, destPid,
+                       "reason", "TOKEN")
+        self.handler.passThroughMessage(None, ctrlMessage, None)
+        self.assertEquals(called, [("reason",)])
+        self.assertEquals(destPid._links, set([]))
 
 
     def test_monitorP(self):
         """
         Test handling of a MONITOR_P token.
         """
-        self.assertRaises(NotImplementedError,
-            self.handler.passThroughMessage, None,
-            (self.handler.CTRLMSGOP_MONITOR_P,), None)
+        srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
+        destPid = Pid(Atom("spam@egg"), 0, 0, 0)
+        ref = Reference(Atom("spam@egg"), 0, 0)
+        ctrlMessage = (self.handler.CTRLMSGOP_MONITOR_P, srcPid, destPid, ref)
+        self.handler.passThroughMessage(None, ctrlMessage, None)
+        self.assertEquals(destPid._remoteMonitors, set([(None, srcPid, ref)]))
+
+
+    def test_demonitorPNotExisting(self):
+        """
+        Test handling of a DEMONITOR_P token while the link doesn't exist
+        locally.
+        """
+        srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
+        destPid = Pid(Atom("spam@egg"), 0, 0, 0)
+        ref = Reference(Atom("spam@egg"), 0, 0)
+        ctrlMessage = (self.handler.CTRLMSGOP_DEMONITOR_P, srcPid, destPid, ref)
+        self.handler.passThroughMessage(None, ctrlMessage, None)
+        self.assertEquals(destPid._remoteMonitors, set([]))
 
 
     def test_demonitorP(self):
         """
         Test handling of a DEMONITOR_P token.
         """
-        self.assertRaises(NotImplementedError,
-            self.handler.passThroughMessage, None,
-            (self.handler.CTRLMSGOP_DEMONITOR_P,), None)
+        srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
+        destPid = Pid(Atom("spam@egg"), 0, 0, 0)
+        ref = Reference(Atom("spam@egg"), 0, 0)
+        destPid._remoteMonitor(None, srcPid, ref)
+        # Sanity check
+        self.assertNotEquals(destPid._remoteMonitors, set([]))
+
+        ctrlMessage = (self.handler.CTRLMSGOP_DEMONITOR_P, srcPid, destPid, ref)
+        self.handler.passThroughMessage(None, ctrlMessage, None)
+        self.assertEquals(destPid._remoteMonitors, set([]))
 
 
     def test_monitorPExit(self):
         """
         Test handling of a MONITOR_P_EXIT token.
         """
-        self.assertRaises(NotImplementedError,
-            self.handler.passThroughMessage, None,
-            (self.handler.CTRLMSGOP_MONITOR_P_EXIT,), None)
+        srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
+        destPid = Pid(Atom("spam@egg"), 0, 0, 0)
+        ref = Reference(Atom("spam@egg"), 0, 0)
+
+        ctrlMessage = (self.handler.CTRLMSGOP_MONITOR_P_EXIT, srcPid, destPid,
+                       ref, "reason")
+        self.handler.passThroughMessage(None, ctrlMessage, None)
+
+
+    def test_monitorPExitWithHandler(self):
+        """
+        Test handling of a MONITOR_P_EXIT token with a registered handler to
+        it.
+        """
+        srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
+        destPid = Pid(Atom("spam@egg"), 0, 0, 0)
+        ref = Reference(Atom("spam@egg"), 0, 0)
+
+        called = []
+        destPid.addMonitorHandler(ref, lambda *args: called.append(args))
+        ctrlMessage = (self.handler.CTRLMSGOP_MONITOR_P_EXIT, srcPid, destPid,
+                       ref, "reason")
+        self.handler.passThroughMessage(None, ctrlMessage, None)
+        self.assertEquals(called, [("reason",)])
 
 
     def test_operationRegSend(self):
@@ -449,7 +553,7 @@ class MessageHandlerTestCase(TestCase):
             "\x00\x7fp\x83h\x04a\x06gd\x00\x07foo@bar\x00\x00\x00\x00\x00"
             "\x00\x00\x00\x00d\x00\x00d\x00\nnet_kernel\x83h\x03d\x00\t"
             "$gen_callh\x02gd\x00\x07foo@bar\x00\x00\x00\x00\x00\x00\x00\x00"
-            "\x00r\x00\x03d\x00\x07foo@bar\x00\x00\x00\x00\x02\x00\x00\x00"
+            "\x00r\x00\x03d\x00\x07foo@bar\x00\x00\x00\x00\x01\x00\x00\x00"
             "\x00\x00\x00\x00\x00h\x02d\x00\x07is_authd\x00\x07foo@bar")
         proto.state = "connected"
         pid = Pid(Atom("foo@bar"), 0, 0, 0)
@@ -564,7 +668,7 @@ class MessageHandlerTestCase(TestCase):
             "\x007p\x83h\x03a\x02d\x00\x00gd\x00\x07foo@bar"
             "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x83h\x02ed\x00\x07foo@bar"
             "\x00\x00\x00\x00\x00d\x00\x04null")
-        self.assertEquals(called, [("arg1", "arg2")])
+        self.assertEquals(called, [(proto, "arg1", "arg2")])
 
 
     def test_createPid(self):

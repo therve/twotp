@@ -13,7 +13,7 @@ from twisted.python import log
 
 from twotp.term  import Tuple, Atom, Integer, Reference, Pid, List, Port
 from twotp.packer import termToBinary, thePacker
-from twotp.parser import binaryToTerms, theParser
+from twotp.parser import ParserWithPidCache
 
 
 
@@ -80,6 +80,7 @@ class MessageHandler(object):
                 name = name.split('CTRLMSGOP_')[1].lower()
                 self._mapping[val] = getattr(self, 'operation_%s' % (name,))
         self._pendingResponses = {}
+        self._parser = ParserWithPidCache()
 
 
     def operation_send(self, proto, controlMessage, message):
@@ -91,25 +92,31 @@ class MessageHandler(object):
         d.callback((controlMessage, message))
 
 
-    def operation_link(self, proto, controlMessage, message):
-        """
-        Manage C{CTRLMSGOP_LINK}.
-        """
-        raise NotImplementedError()
-
-
     def operation_exit(self, proto, controlMessage, message):
         """
         Manage C{CTRLMSGOP_EXIT}.
         """
-        raise NotImplementedError()
+        destPid = controlMessage[0]
+        srcPid = controlMessage[1]
+        srcPid._signalExit(destPid, controlMessage[2])
+
+
+    def operation_link(self, proto, controlMessage, message):
+        """
+        Manage C{CTRLMSGOP_LINK}.
+        """
+        srcPid = controlMessage[0]
+        destPid = controlMessage[1]
+        destPid.link(proto, srcPid, _received=True)
 
 
     def operation_unlink(self, proto, controlMessage, message):
         """
         Manage C{CTRLMSGOP_UNLINK}.
         """
-        raise NotImplementedError()
+        srcPid = controlMessage[0]
+        destPid = controlMessage[1]
+        destPid.unlink(proto, srcPid, _received=True)
 
 
     def operation_node_link(self, proto, controlMessage, message):
@@ -130,7 +137,7 @@ class MessageHandler(object):
         """
         Manage C{CTRLMSGOP_EXIT2}.
         """
-        raise NotImplementedError()
+        return self.operation_exit(proto, controlMessage, message)
 
 
     def operation_send_tt(self, proto, controlMessage, message):
@@ -169,21 +176,30 @@ class MessageHandler(object):
         """
         Manage C{CTRLMSGOP_MONITOR_P}.
         """
-        raise NotImplementedError()
+        srcPid = controlMessage[0]
+        destPid = controlMessage[1]
+        monitorRef = controlMessage[2]
+        destPid._remoteMonitor(proto, srcPid, monitorRef)
 
 
     def operation_demonitor_p(self, proto, controlMessage, message):
         """
         Manage C{CTRLMSGOP_DEMONITOR_P}.
         """
-        raise NotImplementedError()
+        srcPid = controlMessage[0]
+        destPid = controlMessage[1]
+        monitorRef = controlMessage[2]
+        destPid._remoteDemonitor(proto, srcPid, monitorRef)
 
 
     def operation_monitor_p_exit(self, proto, controlMessage, message):
         """
         Manage C{CTRLMSGOP_MONITOR_P_EXIT}.
         """
-        raise NotImplementedError()
+        srcPid = controlMessage[0]
+        destPid = controlMessage[1]
+        monitorRef = controlMessage[2]
+        destPid._signalMonitorExit(srcPid, monitorRef, controlMessage[3])
 
 
     def regsend_net_kernel(self, proto, message):
@@ -229,7 +245,8 @@ class MessageHandler(object):
                 self.send(proto, toPid, Tuple((ref, (Atom('badrpc'),
                          "undefined function %r" % (func,)))))
             else:
-                d = defer.maybeDeferred(proxy, *args)
+                log.msg("Remote call to method %r" % (func,))
+                d = defer.maybeDeferred(proxy, proto, *args)
                 d.addCallback(self._forwardResponse, proto, toPid, ref)
                 d.addErrback(self._forwardError, proto, toPid, ref)
         else:
@@ -336,6 +353,68 @@ class MessageHandler(object):
         return d
 
 
+    def sendLink(self, proto, srcPid, destPid):
+        """
+        Create a link from local PID C{srcPid} to remote PID C{destPid}.
+        """
+        ctrlMsg = Tuple((Integer(self.CTRLMSGOP_LINK), srcPid, destPid))
+        proto.send("p" + termToBinary(ctrlMsg))
+
+
+    def sendUnlink(self, proto, srcPid, destPid):
+        """
+        Remove a previously created link between local PID C{srcPid} to remote
+        PID C{destPid}.
+        """
+        ctrlMsg = Tuple((Integer(self.CTRLMSGOP_UNLINK), srcPid, destPid))
+        proto.send("p" + termToBinary(ctrlMsg))
+
+
+    def sendMonitor(self, proto, srcPid, destPid):
+        """
+        Monitor remote PID C{destPid}.
+
+        @return: the L{Reference} of the monitoring, which will be passed in
+            exit.
+        """
+        monitorRef = self.createRef()
+        ctrlMsg = Tuple(
+            (Integer(self.CTRLMSGOP_MONITOR_P), srcPid, destPid, monitorRef))
+        proto.send("p" + termToBinary(ctrlMsg))
+        return monitorRef
+
+
+    def sendDemonitor(self, proto, srcPid, destPid, monitorRef):
+        """
+        Remove monitoring of remote process C{destPid}.
+
+        @return: the L{Reference} of the monitoring, which will be passed in
+            exit.
+        """
+        ctrlMsg = Tuple(
+            (Integer(self.CTRLMSGOP_DEMONITOR_P), srcPid, destPid, monitorRef))
+        proto.send("p" + termToBinary(ctrlMsg))
+
+
+    def sendLinkExit(self, proto, srcPid, destPid, reason):
+        """
+        Send an exit signal for a remote linked process.
+        """
+        ctrlMsg = Tuple(
+            (Integer(self.CTRLMSGOP_EXIT), srcPid, destPid, reason))
+        proto.send("p" + termToBinary(ctrlMsg))
+
+
+    def sendMonitorExit(self, proto, srcPid, destPid, monitorRef, reason):
+        """
+        Send a monitor exit signal for a remote process.
+        """
+        ctrlMsg = Tuple(
+            (Integer(self.CTRLMSGOP_MONITOR_P_EXIT), srcPid, destPid,
+             monitorRef, reason))
+        proto.send("p" + termToBinary(ctrlMsg))
+
+
     def createRef(self):
         """
         Create an unique erlang reference.
@@ -367,6 +446,7 @@ class MessageHandler(object):
                     self.serial = 0
             elif self.serial > 0x07:
                 self.serial = 0
+        self._parser._pids[p] = p
         return p
 
 
@@ -402,7 +482,7 @@ class NodeProtocol(protocol.Protocol):
     DISTR_FLAG_EXTENDEDPIDSPORTS = 256
 
     distrVersion = 5
-    distrFlags = DISTR_FLAG_EXTENDEDREFERENCES|DISTR_FLAG_EXTENDEDPIDSPORTS
+    distrFlags = DISTR_FLAG_EXTENDEDREFERENCES|DISTR_FLAG_EXTENDEDPIDSPORTS|DISTR_FLAG_DISTMONITOR
 
     def __init__(self):
         """
@@ -536,7 +616,7 @@ class NodeProtocol(protocol.Protocol):
         """
         if len(data) < 4:
             return data
-        packetLen = theParser.parseInt(data[0:4])
+        packetLen = self.factory._parser.parseInt(data[0:4])
         if len(data) < packetLen + 4:
             # Incomplete packet.
             return data
@@ -545,7 +625,7 @@ class NodeProtocol(protocol.Protocol):
             # Tick
             pass
         elif packetData[0] == "p":
-            terms = list(binaryToTerms(packetData[1:]))
+            terms = list(self.factory._parser.binaryToTerms(packetData[1:]))
             if len(terms) == 2:
                 self.factory.passThroughMessage(self, terms[0], terms[1])
             elif len(terms) == 1:

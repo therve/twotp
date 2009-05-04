@@ -11,6 +11,7 @@ from twisted.test.proto_helpers import StringTransportWithDisconnection
 
 from twotp.server import NodeServerProtocol, NodeServerFactory
 from twotp.test.util import TestCase
+from twotp.parser import theParser
 
 
 
@@ -27,6 +28,7 @@ class DummyServerFactory(object):
         self.nodeName = "spam@egg"
         self.cookie = "test_cookie"
         self.netTickTime = 30
+        self._parser = theParser
 
 
     def timeFactory(self):
@@ -74,7 +76,7 @@ class NodeServerProtocolTestCase(TestCase):
         self.assertEquals(self.proto.state, "challenge")
         self.assertEquals(self.transport.value(),
             "\x00\x03sok"
-            "\x00\x13n\x00\x05\x00\x00\x01\x04\x00\x00\x00\x02spam@egg")
+            "\x00\x13n\x00\x05\x00\x00\x01\x0c\x00\x00\x00\x02spam@egg")
 
 
     def test_handshakeFragmented(self):
@@ -88,7 +90,7 @@ class NodeServerProtocolTestCase(TestCase):
         self.assertEquals(self.proto.state, "challenge")
         self.assertEquals(self.transport.value(),
             "\x00\x03sok"
-            "\x00\x13n\x00\x05\x00\x00\x01\x04\x00\x00\x00\x02spam@egg")
+            "\x00\x13n\x00\x05\x00\x00\x01\x0c\x00\x00\x00\x02spam@egg")
 
 
     def test_handshakeInvalidIdentifier(self):
