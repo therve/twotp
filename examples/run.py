@@ -11,7 +11,7 @@ import sys
 from twisted.python import log
 from twisted.internet import reactor
 
-from twotp import PersistentPortMapperFactory, String
+from twotp import PersistentPortMapperFactory, String, Atom, Tuple
 from twotp import OneShotPortMapperFactory, readCookie, buildNodeName
 
 
@@ -80,6 +80,18 @@ class Proxy(object):
 
     def remote_test_demonitor(self, proto, pid, ref):
         self.localPid.demonitor(proto, pid, ref)
+        return ()
+
+
+    def remote_test_send(self, proto, pid):
+        proto.factory.send(proto, pid, Atom("test"))
+        return ()
+
+
+    def remote_test_named_send(self, proto, name):
+        if self.localPid is None:
+            self.localPid = proto.factory.createPid(proto)
+        proto.factory.namedSend(proto, self.localPid, name, Atom("test"))
         return ()
 
 

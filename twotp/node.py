@@ -6,7 +6,12 @@
 Basic node protocol and node message handler classes.
 """
 
-import md5, os, time, random
+import os, time, random
+
+try:
+    from hashlib import md5
+except ImportError:
+    from md5 import md5
 
 from twisted.internet import protocol, defer
 from twisted.python import log
@@ -30,10 +35,12 @@ class InvalidDigest(ValueError):
     """
 
 
+
 class BadRPC(ValueError):
     """
     Exception raised when receiving a B{badrpc} answer to a callRemote.
     """
+
 
 
 class MessageHandler(object):
@@ -293,6 +300,15 @@ class MessageHandler(object):
         """
         cookie = Atom('')
         ctrlMsg = Tuple((Integer(self.CTRLMSGOP_SEND), cookie, destPid))
+        proto.send("p" + termToBinary(ctrlMsg) + termToBinary(msg))
+
+
+    def namedSend(self, proto, pid, processName, msg):
+        """
+        Send a message to a named process.
+        """
+        cookie = Atom('')
+        ctrlMsg = Tuple((Integer(self.CTRLMSGOP_REG_SEND), cookie, pid, processName))
         proto.send("p" + termToBinary(ctrlMsg) + termToBinary(msg))
 
 
@@ -607,7 +623,7 @@ class NodeProtocol(protocol.Protocol):
         Create a MD5 digest of a challenge and a cookie.
         """
         challengeStr = str(challenge)
-        return md5.md5(cookie + challengeStr).digest()
+        return md5(cookie + challengeStr).digest()
 
 
     def dataReceived(self, data):
