@@ -676,10 +676,10 @@ class MessageHandlerTestCase(TestCase):
         Test L{MessageHandler.createPid}.
         """
         proto = TestableNodeProtocol()
-        pid = self.handler.createPid(proto)
+        pid = self.handler.createPid()
         self.assertEquals(pid.nodeId, 0)
         self.assertEquals(pid.serial, 0)
-        pid = self.handler.createPid(proto)
+        pid = self.handler.createPid()
         self.assertEquals(pid.nodeId, 1)
         self.assertEquals(pid.serial, 0)
 
@@ -691,11 +691,11 @@ class MessageHandlerTestCase(TestCase):
         """
         proto = TestableNodeProtocol()
         self.handler.pidCount = 0x7fff
-        pid = self.handler.createPid(proto)
+        pid = self.handler.createPid()
         self.assertEquals(pid.nodeId, 32767)
         self.assertEquals(pid.serial, 0)
 
-        pid = self.handler.createPid(proto)
+        pid = self.handler.createPid()
         self.assertEquals(pid.nodeId, 0)
         self.assertEquals(pid.serial, 1)
 
@@ -709,11 +709,11 @@ class MessageHandlerTestCase(TestCase):
         proto = TestableNodeProtocol()
         self.handler.pidCount = 0x7fff
         self.handler.serial = 0x1fff
-        pid = self.handler.createPid(proto)
+        pid = self.handler.createPid()
         self.assertEquals(pid.nodeId, 32767)
         self.assertEquals(pid.serial, 8191)
 
-        pid = self.handler.createPid(proto)
+        pid = self.handler.createPid()
         self.assertEquals(pid.nodeId, 0)
         self.assertEquals(pid.serial, 0)
 
@@ -725,15 +725,16 @@ class MessageHandlerTestCase(TestCase):
         the 0x7 value and that the protocol distribution flags doesn't specify
         L{DISTR_FLAG_EXTENDEDPIDSPORTS}.
         """
+        self.handler.distrFlags -= self.handler.DISTR_FLAG_EXTENDEDPIDSPORTS
         proto = TestableNodeProtocol()
         proto.distrFlags = 0
         self.handler.pidCount = 0x7fff
         self.handler.serial = 0x07
-        pid = self.handler.createPid(proto)
+        pid = self.handler.createPid()
         self.assertEquals(pid.nodeId, 32767)
         self.assertEquals(pid.serial, 7)
 
-        pid = self.handler.createPid(proto)
+        pid = self.handler.createPid()
         self.assertEquals(pid.nodeId, 0)
         self.assertEquals(pid.serial, 0)
 
@@ -743,10 +744,10 @@ class MessageHandlerTestCase(TestCase):
         Test L{MessageHandler.createPort}.
         """
         proto = TestableNodeProtocol()
-        port = self.handler.createPort(proto)
+        port = self.handler.createPort()
         self.assertEquals(port.portId, 0)
 
-        port = self.handler.createPort(proto)
+        port = self.handler.createPort()
         self.assertEquals(port.portId, 1)
 
 
@@ -757,10 +758,10 @@ class MessageHandlerTestCase(TestCase):
         """
         proto = TestableNodeProtocol()
         self.handler.portCount = 0xfffffff
-        port = self.handler.createPort(proto)
+        port = self.handler.createPort()
         self.assertEquals(port.portId, 268435455)
 
-        port = self.handler.createPort(proto)
+        port = self.handler.createPort()
         self.assertEquals(port.portId, 0)
 
 
@@ -770,11 +771,12 @@ class MessageHandlerTestCase(TestCase):
         it reaches the 0x3ffff value and that the protocol distribution flags
         doesn't specify L{DISTR_FLAG_EXTENDEDPIDSPORTS}.
         """
+        self.handler.distrFlags -= self.handler.DISTR_FLAG_EXTENDEDPIDSPORTS
         proto = TestableNodeProtocol()
         proto.distrFlags = 0
         self.handler.portCount = 0x3ffff
-        port = self.handler.createPort(proto)
+        port = self.handler.createPort()
         self.assertEquals(port.portId, 262143)
 
-        port = self.handler.createPort(proto)
+        port = self.handler.createPort()
         self.assertEquals(port.portId, 0)

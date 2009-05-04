@@ -130,8 +130,9 @@ class NodeClientProtocol(NodeProtocol):
         """
         Send name for introduction message.
         """
-        msg = ("n" + struct.pack("!HI", self.distrVersion, self.distrFlags) +
-               self.factory.nodeName)
+        flags = struct.pack(
+            "!HI", self.factory.distrVersion, self.factory.distrFlags)
+        msg = "n%s%s" % (flags, self.factory.nodeName)
         self.send(msg)
 
 

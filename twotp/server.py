@@ -77,8 +77,10 @@ class NodeServerProtocol(NodeProtocol):
         Send initial challenge.
         """
         self.challenge = self.generateChallenge()
-        msg = "n" + struct.pack("!HII", self.distrVersion, self.distrFlags,
-                                self.challenge) + self.factory.nodeName
+        flags = struct.pack(
+            "!HII", self.factory.distrVersion, self.factory.distrFlags,
+                    self.challenge)
+        msg = "n%s%s" % (flags, self.factory.nodeName)
         self.send(msg)
 
 

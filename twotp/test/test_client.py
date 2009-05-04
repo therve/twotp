@@ -35,6 +35,8 @@ class DummyClientFactory(object):
     """
     A dummy client factory for tests.
     """
+    distrVersion = 5
+    distrFlags = 268
 
     def __init__(self):
         """

@@ -20,6 +20,9 @@ class DummyServerFactory(object):
     A dummy server factory for tests.
     """
 
+    distrVersion = 5
+    distrFlags = 268
+
     def __init__(self):
         """
         Initialize with testable values.

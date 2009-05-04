@@ -66,6 +66,19 @@ class MessageHandler(object):
     CTRLMSGOP_DEMONITOR_P = 20
     CTRLMSGOP_MONITOR_P_EXIT = 21
 
+    DISTR_FLAG_PUBLISHED = 1
+    DISTR_FLAG_ATOMCACHE = 2
+    DISTR_FLAG_EXTENDEDREFERENCES = 4
+    DISTR_FLAG_DISTMONITOR = 8
+    DISTR_FLAG_FUNTAGS = 16
+    DISTR_FLAG_DISTMONITORNAME = 32
+    DISTR_FLAG_HIDDENATOMCACHE = 64
+    DISTR_FLAG_NEWFUNTAGS = 128
+    DISTR_FLAG_EXTENDEDPIDSPORTS = 256
+
+    distrVersion = 5
+    distrFlags = DISTR_FLAG_EXTENDEDREFERENCES|DISTR_FLAG_EXTENDEDPIDSPORTS|DISTR_FLAG_DISTMONITOR
+
     refIds = None
     pidCount = 0
     portCount = 0
@@ -324,7 +337,7 @@ class MessageHandler(object):
         """
         Call a RPC method on an erlang node.
         """
-        pid = self.createPid(proto)
+        pid = self.createPid()
         return self._callRemoteWithPid(proto, pid, module, func, *args)
 
 
@@ -356,7 +369,7 @@ class MessageHandler(object):
         """
         Ping a remote node.
         """
-        pid = self.createPid(proto)
+        pid = self.createPid()
         return self._pingWithPid(proto, pid)
 
 
@@ -461,7 +474,7 @@ class MessageHandler(object):
         return r
 
 
-    def createPid(self, proto):
+    def createPid(self):
         """
         Create an unique Pid object.
         """
@@ -471,7 +484,7 @@ class MessageHandler(object):
         if self.pidCount > 0x7fff:
             self.pidCount = 0
             self.serial += 1
-            if proto.distrFlags & proto.DISTR_FLAG_EXTENDEDPIDSPORTS:
+            if self.distrFlags & self.DISTR_FLAG_EXTENDEDPIDSPORTS:
                 if self.serial > 0x1fff:
                     self.serial = 0
             elif self.serial > 0x07:
@@ -480,13 +493,13 @@ class MessageHandler(object):
         return p
 
 
-    def createPort(self, proto):
+    def createPort(self):
         """
         Create an unique Port object.
         """
         o = Port(Atom(self.nodeName), self.portCount, self.creation)
         self.portCount += 1
-        if proto.distrFlags & proto.DISTR_FLAG_EXTENDEDPIDSPORTS:
+        if self.distrFlags & self.DISTR_FLAG_EXTENDEDPIDSPORTS:
             if self.portCount > 0xfffffff:
                 self.portCount = 0
         elif self.portCount > 0x3ffff:
@@ -500,19 +513,6 @@ class NodeProtocol(protocol.Protocol):
     @ivar state: 'handshake', 'challenge', 'connected'.
     @type state: C{str}
     """
-
-    DISTR_FLAG_PUBLISHED = 1
-    DISTR_FLAG_ATOMCACHE = 2
-    DISTR_FLAG_EXTENDEDREFERENCES = 4
-    DISTR_FLAG_DISTMONITOR = 8
-    DISTR_FLAG_FUNTAGS = 16
-    DISTR_FLAG_DISTMONITORNAME = 32
-    DISTR_FLAG_HIDDENATOMCACHE = 64
-    DISTR_FLAG_NEWFUNTAGS = 128
-    DISTR_FLAG_EXTENDEDPIDSPORTS = 256
-
-    distrVersion = 5
-    distrFlags = DISTR_FLAG_EXTENDEDREFERENCES|DISTR_FLAG_EXTENDEDPIDSPORTS|DISTR_FLAG_DISTMONITOR
 
     def __init__(self):
         """
