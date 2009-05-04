@@ -308,17 +308,24 @@ class MessageHandler(object):
         """
         Call a RPC method on an erlang node.
         """
+        pid = self.createPid(proto)
+        return self._callRemoteWithPid(proto, pid, module, func, *args)
+
+
+    def _callRemoteWithPid(self, proto, pid, module, func, *args):
+        """
+        Helper method doing a callRemote for the specified C{pid}.
+        """
         d = defer.Deferred()
 
         cookie = Atom('')
-        srcPid = self.createPid(proto)
         call = Tuple((Atom("call"), Atom(module), Atom(func), List(args),
                       Atom("user")))
-        rpc =  Tuple((srcPid, call))
+        rpc =  Tuple((pid, call))
 
-        ctrlMsg = Tuple((Integer(self.CTRLMSGOP_REG_SEND), srcPid,
+        ctrlMsg = Tuple((Integer(self.CTRLMSGOP_REG_SEND), pid,
                          cookie, Atom("rex")))
-        self._pendingResponses.setdefault(srcPid, []).append(d)
+        self._pendingResponses.setdefault(pid, []).append(d)
         proto.send("p" + termToBinary(ctrlMsg) + termToBinary(rpc))
         def cb((ctrlMessage, message)):
             if (isinstance(message[1], (list, tuple)) and
@@ -333,17 +340,24 @@ class MessageHandler(object):
         """
         Ping a remote node.
         """
+        pid = self.createPid(proto)
+        return self._pingWithPid(proto, pid)
+
+
+    def _pingWithPid(self, proto, pid):
+        """
+        Helper method doing a ping for the specified C{pid}.
+        """
         d = defer.Deferred()
 
         cookie = Atom('')
-        srcPid = self.createPid(proto)
         ref = self.createRef()
-        msg = Tuple((Atom("$gen_call"), Tuple((srcPid, ref)),
+        msg = Tuple((Atom("$gen_call"), Tuple((pid, ref)),
                      Tuple((Atom("is_auth"),
                             Atom(self.nodeName)))))
-        ctrlMsg = Tuple((Integer(self.CTRLMSGOP_REG_SEND), srcPid,
+        ctrlMsg = Tuple((Integer(self.CTRLMSGOP_REG_SEND), pid,
                          cookie, Atom("net_kernel")))
-        self._pendingResponses.setdefault(srcPid, []).append(d)
+        self._pendingResponses.setdefault(pid, []).append(d)
         proto.send("p" + termToBinary(ctrlMsg) + termToBinary(msg))
         def cb((ctrlMessage, message)):
             if message[1].text == "yes":

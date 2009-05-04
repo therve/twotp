@@ -329,6 +329,20 @@ class Pid(Term):
             handler(reason)
 
 
+    def callRemote(self, proto, module, func, *args):
+        """
+        Call a method on the remote node.
+        """
+        return proto.factory._callRemoteWithPid(proto, self, module, func, *args)
+
+
+    def ping(self, proto):
+        """
+        Ping the remote node.
+        """
+        return proto.factory._pingWithPid(proto, self)
+
+
 
 class Reference(Term):
     """
