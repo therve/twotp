@@ -9,6 +9,7 @@ Server node protocol.
 import struct
 
 from twisted.internet.protocol import ServerFactory
+from twisted.internet.defer import Deferred
 from twisted.python import log
 
 from twotp.node import NodeProtocol, NodeBaseFactory, InvalidIdentifier, InvalidDigest
@@ -20,6 +21,8 @@ class NodeServerProtocol(NodeProtocol):
     @ivar state: 'handshake', 'challenge', 'connected'.
     @type state: C{str}
     """
+    _connectDeferred = None
+
 
     def connectionMade(self):
         """
@@ -68,6 +71,9 @@ class NodeServerProtocol(NodeProtocol):
             raise InvalidDigest("Digest doesn't match, node disallowed")
         self.sendAck(peerChallenge)
         self.state = "connected"
+        if self._connectDeferred is not None:
+            d, self._connectDeferred = self._connectDeferred, None
+            d.callback(self)
         self.startTimer()
         return data[packetLen + 2:]
 
@@ -105,6 +111,7 @@ class NodeServerFactory(NodeBaseFactory, ServerFactory):
         """
         NodeBaseFactory.__init__(self, methodsHolder, nodeName, cookie)
         epmdConnectDeferred.addCallback(self._epmdConnected)
+        self._nodeCache = {}
 
 
     def _epmdConnected(self, creation):
@@ -112,3 +119,22 @@ class NodeServerFactory(NodeBaseFactory, ServerFactory):
         Callback fired when connected to the EPMD.
         """
         self.creation = creation
+        return self
+
+
+    def _putInCache(self, instance):
+        """
+        Store the connection in a cache for being used later on.
+        """
+        self._nodeCache[instance.peerName] = instance
+
+
+    def buildProtocol(self, addr):
+        """
+        Build the L{NodeServerProtocol} instance and add a callback when the
+        connection has been successfully established to the other node.
+        """
+        p = ServerFactory.buildProtocol(self, addr)
+        p._connectDeferred = Deferred()
+        p._connectDeferred.addCallback(self._putInCache)
+        return p

@@ -167,3 +167,24 @@ class NodeServerFactoryTestCase(TestCase):
         d.callback(2)
         self.assertEquals(factory.creation, 2)
 
+
+    def test_cache(self):
+        """
+        C{NodeServerFactory} keeps track of all connected instances once the
+        challenge operation succeeds.
+        """
+        d = Deferred()
+        factory = NodeServerFactory(None, "foo@bar", "test_cookie", d)
+        factory.randomFactory = lambda: 2
+        proto = factory.buildProtocol(None)
+        transport = StringTransportWithDisconnection()
+        proto.makeConnection(transport)
+        transport.protocol = proto
+        clock = Clock()
+        proto.callLater = clock.callLater
+
+        proto.dataReceived(
+            "\x00\x0an\x00\x01\x00\x00\x00\x02foo")
+        proto.dataReceived(
+            "\x00\x15r\x00\x00\x00\x05I\x14\xa6U'\xe0\x89\x14<\x1a\xdc\xf9(G&!")
+        self.assertEquals(factory._nodeCache, {"foo": proto})
