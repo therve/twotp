@@ -384,7 +384,7 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         proto = self.factory.buildProtocol(('127.0.01', 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
-        self.assertEquals(transport.value(), "\x00\tzegg@spam")
+        self.assertEquals(transport.value(), "\x00\x04zegg")
         self.assertEquals(self.factory.connect,
             [('127.0.0.1', 4369, self.factory)])
         proto.dataReceived(
@@ -403,7 +403,7 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         L{OneShotPortMapperFactory.connectToNode} should directly return it.
         """
         clientProto = object()
-        self.factory._nodeCache["egg@spam"] = clientProto
+        self.factory._nodeCache["egg"] = clientProto
         d = self.factory.connectToNode("egg@spam")
         return d.addCallback(self.assertIdentical, clientProto)
 

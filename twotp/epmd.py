@@ -403,6 +403,8 @@ class OneShotPortMapperFactory(ClientFactory):
         """
         Get a connection to an erlang node named C{nodeName}.
         """
+        nodeName = nodeName.split("@")[0]
+
         if nodeName in self._nodeCache:
             return succeed(self._nodeCache[nodeName])
 
