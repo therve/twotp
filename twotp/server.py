@@ -107,11 +107,11 @@ class NodeServerFactory(NodeBaseFactory, ServerFactory):
     """
     protocol = NodeServerProtocol
 
-    def __init__(self, methodsHolder, nodeName, cookie, epmdConnectDeferred):
+    def __init__(self, nodeName, cookie, epmdConnectDeferred):
         """
         Initialize the server factory.
         """
-        NodeBaseFactory.__init__(self, methodsHolder, nodeName, cookie)
+        NodeBaseFactory.__init__(self, nodeName, cookie)
         epmdConnectDeferred.addCallback(self._epmdConnected)
         self._nodeCache = {}
 

@@ -181,12 +181,11 @@ class NodeClientFactory(NodeBaseFactory, ClientFactory):
     """
     protocol = NodeClientProtocol
 
-    def __init__(self, methodsHolder, nodeName, cookie,
-                 onConnectionLost=lambda x: None):
+    def __init__(self, nodeName, cookie, onConnectionLost=lambda x: None):
         """
         Initialize the server factory.
         """
-        NodeBaseFactory.__init__(self, methodsHolder, nodeName, cookie)
+        NodeBaseFactory.__init__(self, nodeName, cookie)
         self._connectDeferred = Deferred()
         self.onConnectionLost = onConnectionLost
 

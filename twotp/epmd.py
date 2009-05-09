@@ -304,13 +304,13 @@ class PersistentPortMapperFactory(ClientFactory):
         return reactor.connectTCP(host, port, factory)
 
 
-    def publish(self, **methodsHolder):
+    def publish(self):
         """
-        Publish a node with given methods to the EPMD.
+        Publish a node to the EPMD.
         """
         self._connectDeferred = Deferred()
-        nodeFactory = self.nodeFactoryClass(methodsHolder, self.nodeName,
-                self.cookie, self._connectDeferred)
+        nodeFactory = self.nodeFactoryClass(
+            self.nodeName, self.cookie, self._connectDeferred)
         nodePort = self.listenTCP(0, nodeFactory)
         self.nodePortNumber = nodePort.getHost().port
         self.connectTCP(self.host, self.EPMD_PORT, self)
@@ -399,7 +399,7 @@ class OneShotPortMapperFactory(ClientFactory):
         d.errback(reason)
 
 
-    def connectToNode(self, nodeName, **methodsHolder):
+    def connectToNode(self, nodeName):
         """
         Get a connection to an erlang node named C{nodeName}.
         """
@@ -409,8 +409,8 @@ class OneShotPortMapperFactory(ClientFactory):
             return succeed(self._nodeCache[nodeName])
 
         def cbPort(node):
-            factory = self.nodeFactoryClass(methodsHolder, self.nodeName,
-                                            self.cookie, self.onConnectionLost)
+            factory = self.nodeFactoryClass(
+                self.nodeName, self.cookie, self.onConnectionLost)
             d = factory._connectDeferred
             self.connectTCP(self.host, node.portNumber, factory)
             d.addCallback(cbConnect)
@@ -469,8 +469,8 @@ class PersistentPortMapperService(Service):
         Service.startService(self)
         epmd = PersistentPortMapperFactory(self.nodeName, self.cookie)
         epmd._connectDeferred = Deferred()
-        nodeFactory = epmd.nodeFactoryClass(self.methodsHolder, self.nodeName,
-                self.cookie, epmd._connectDeferred)
+        nodeFactory = epmd.nodeFactoryClass(
+            self.nodeName, self.cookie, epmd._connectDeferred)
         server = TCPServer(0, nodeFactory)
         server.startService()
         epmd.nodePortNumber = server._port.getHost().port

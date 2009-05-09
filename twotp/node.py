@@ -86,16 +86,14 @@ class MessageHandler(object):
     portCount = 0
     serial = 0
 
-    methodsHolder = None
     nodeName = ""
     cookie = ""
     creation = 0
 
-    def __init__(self, methodsHolder, nodeName, cookie):
+    def __init__(self, nodeName, cookie):
         """
         Instantiate the handler and its operation mapping.
         """
-        self.methodsHolder = methodsHolder
         self.nodeName = nodeName
         self.cookie = cookie
 
@@ -105,7 +103,6 @@ class MessageHandler(object):
             if name.startswith('CTRLMSGOP_'):
                 name = name.split('CTRLMSGOP_')[1].lower()
                 self._mapping[val] = getattr(self, 'operation_%s' % (name,))
-        self._pendingResponses = {}
         self._parser = ParserWithPidCache()
         self._namedProcesses = {}
         self._registeredProcesses = {}
@@ -116,11 +113,8 @@ class MessageHandler(object):
         Manage C{CTRLMSGOP_SEND}.
         """
         destPid = controlMessage[1]
-        if destPid in self._pendingResponses:
-            d = self._pendingResponses[destPid].pop(0)
-            d.callback((controlMessage, message))
-        elif destPid in self._registeredProcesses:
-            self._registeredProcesses[destPid](controlMessage[0], message)
+        if destPid in self._registeredProcesses:
+            self._registeredProcesses[destPid](proto, controlMessage, message)
         else:
             log.msg("Send to unknown process %r" % (destPid,))
 
@@ -235,59 +229,6 @@ class MessageHandler(object):
         destPid._signalMonitorExit(srcPid, monitorRef, controlMessage[3])
 
 
-    def regsend_net_kernel(self, proto, message):
-        """
-        Handle regsend reply for net_kernel module.
-        """
-        if message[0].text == "$gen_call":
-            if message[2][0].text == "is_auth":
-                # Reply to ping
-                toPid = message[1][0]
-                ref = message[1][1]
-                resp = Tuple((ref, Atom("yes")))
-            elif message[2][0].text == "spawn":
-                toPid = message[1][0]
-                ref = message[1][1]
-                # Don't handle that for now
-                resp = Tuple((ref, Atom("error")))
-            else:
-                log.msg("Unhandled method %s" % (message[2][0].text,))
-                resp = Tuple((ref, Atom("error")))
-        else:
-            log.msg("Unhandled call %s" % (message[0].text,))
-            resp = Tuple((ref, Atom("error")))
-        self.send(proto, toPid, resp)
-
-
-    def regsend_rex(self, proto, message):
-        """
-        Handle regsend reply for rpc.
-        """
-        toPid = message[1][0]
-        ref = message[1][1]
-        module = message[2][1].text
-        func = message[2][2].text
-        args = message[2][3]
-        if module in self.methodsHolder:
-            proxy = getattr(self.methodsHolder[module],
-                            "remote_%s" % (func,), None)
-
-            if proxy is None:
-                log.msg("Unknow method %r of module %r" % (func, module))
-
-                self.send(proto, toPid, Tuple((ref, (Atom('badrpc'),
-                         "undefined function %r" % (func,)))))
-            else:
-                log.msg("Remote call to method %r" % (func,))
-                d = maybeDeferred(proxy, proto, *args)
-                d.addCallback(self._forwardResponse, proto, toPid, ref)
-                d.addErrback(self._forwardError, proto, toPid, ref)
-        else:
-            log.msg("No holder registered for %r" % (module,))
-            self.send(proto, toPid, Tuple((ref, (Atom('badrpc'),
-                     "undefined module %r" % (module,)))))
-
-
     def operation_reg_send(self, proto, controlMessage, message):
         """
         Handle C{REG_SEND} reply.
@@ -296,33 +237,10 @@ class MessageHandler(object):
         fromPid = controlMessage[0]
         cookie = controlMessage[1]
         toName = controlMessage[2]
-        subHandler = getattr(self, "regsend_%s" % (toName.text,), None)
-        if subHandler is not None:
-            return subHandler(proto, message)
-        elif toName.text in self._namedProcesses:
-           self._namedProcesses[toName.text](fromPid, message)
+        if toName.text in self._namedProcesses:
+           self._namedProcesses[toName.text](proto, controlMessage, message)
         else:
             log.msg("Send to unknown process name %r" % (toName.text,))
-
-
-    def _forwardResponse(self, result, proto, toPid, ref):
-        """
-        Forward a response to an erlang node from a python method.
-        """
-        if result is None:
-            result = Atom("null")
-        else:
-            result = Tuple((Atom("ok"), result))
-        self.send(proto, toPid, Tuple((ref, result)))
-
-
-    def _forwardError(self, error, proto, toPid, ref):
-        """
-        Forward the string representation of the exception to the node.
-        """
-        log.err(error)
-        self.send(proto, toPid,
-            Tuple((ref, (Atom('badrpc'), str(error.value)))))
 
 
     def send(self, proto, destPid, msg):
@@ -350,69 +268,6 @@ class MessageHandler(object):
         """
         operation = controlMessage[0]
         self._mapping[operation](proto, controlMessage[1:], message)
-
-
-    def callRemote(self, proto, module, func, *args):
-        """
-        Call a RPC method on an erlang node.
-        """
-        pid = self.createPid()
-        return self._callRemoteWithPid(proto, pid, module, func, *args)
-
-
-    def _callRemoteWithPid(self, proto, pid, module, func, *args):
-        """
-        Helper method doing a callRemote for the specified C{pid}.
-        """
-        d = Deferred()
-
-        cookie = Atom('')
-        call = Tuple((Atom("call"), Atom(module), Atom(func), List(args),
-                      Atom("user")))
-        rpc =  Tuple((pid, call))
-
-        ctrlMsg = Tuple((Integer(self.CTRLMSGOP_REG_SEND), pid,
-                         cookie, Atom("rex")))
-        self._pendingResponses.setdefault(pid, []).append(d)
-        proto.send("p" + termToBinary(ctrlMsg) + termToBinary(rpc))
-        def cb((ctrlMessage, message)):
-            if (isinstance(message[1], (list, tuple)) and
-                len(message[1]) > 0 and message[1][0] == Atom("badrpc")):
-                raise BadRPC(message[1][1])
-            return message[1]
-        d.addCallback(cb)
-        return d
-
-
-    def ping(self, proto):
-        """
-        Ping a remote node.
-        """
-        pid = self.createPid()
-        return self._pingWithPid(proto, pid)
-
-
-    def _pingWithPid(self, proto, pid):
-        """
-        Helper method doing a ping for the specified C{pid}.
-        """
-        d = Deferred()
-
-        cookie = Atom('')
-        ref = self.createRef()
-        msg = Tuple((Atom("$gen_call"), Tuple((pid, ref)),
-                     Tuple((Atom("is_auth"),
-                            Atom(self.nodeName)))))
-        ctrlMsg = Tuple((Integer(self.CTRLMSGOP_REG_SEND), pid,
-                         cookie, Atom("net_kernel")))
-        self._pendingResponses.setdefault(pid, []).append(d)
-        proto.send("p" + termToBinary(ctrlMsg) + termToBinary(msg))
-        def cb((ctrlMessage, message)):
-            if message[1].text == "yes":
-                return "pong"
-            return "pang"
-        d.addCallback(cb)
-        return d
 
 
     def sendLink(self, proto, srcPid, destPid):
@@ -725,13 +580,9 @@ class NodeBaseFactory(object):
     timeFactory = time.time
     randomFactory = random.random
 
-    def __init__(self, methodsHolder, nodeName, cookie):
+    def __init__(self, nodeName, cookie):
         """
         Initialize the server factory.
-
-        @param methodsHolder: contain mapping of function into modules for RPC
-            calls from an erlang node.
-        @type methodsHolder: C{dict}
 
         @param nodeName: the name of the node.
         @type nodeName: C{str}
@@ -739,7 +590,7 @@ class NodeBaseFactory(object):
         @type cookie: cookie used for authorization between nodes.
         @param cookie: C{str}
         """
-        self.handler = MessageHandler(methodsHolder, nodeName, cookie)
+        self.handler = MessageHandler(nodeName, cookie)
 
 
 
@@ -750,7 +601,7 @@ class ProcessExited(Exception):
 
 
 
-class Process(object):
+class ProcessBase(object):
     """
     Represent the an Erlang-like process in your Twisted application, able to
     communicate with Erlang nodes.
@@ -761,12 +612,14 @@ class Process(object):
     _receiveDeferred = None
     _cancelReceiveID = None
 
-    def __init__(self, nodeName, cookie):
+    def __init__(self, nodeName, cookie, handler=None):
         self.nodeName = nodeName
         self.cookie = cookie
         self.oneShotEpmds = {}
         self._pendingReceivedData = []
-        self.handler = MessageHandler({}, nodeName, cookie)
+        if handler is None:
+            handler = MessageHandler(nodeName, cookie)
+        self.handler = handler
         self.pid = self.handler.createPid()
         self.handler._registeredProcesses[self.pid] = self._receivedData
 
@@ -799,14 +652,13 @@ class Process(object):
     persistentPortMapperClass = property(persistentPortMapperClass)
 
 
-    def listen(self, **methodsHolder):
+    def listen(self):
         """
         Start a listening process able to receive calls from other Erlang
         nodes.
         """
         if self.persistentEpmd is not None:
             raise RuntimeError("Already listening")
-        self.handler.methodsHolder = methodsHolder
         self.persistentEpmd = self.persistentPortMapperClass(
             self.nodeName, self.cookie)
         def gotFactory(factory):
@@ -846,7 +698,16 @@ class Process(object):
         Ping node C{nodeName}.
         """
         def doPing(instance):
-            return self.handler._pingWithPid(instance, self.pid)
+            d = Deferred()
+            process = NetKernelResponseProcess(
+                self.nodeName, self.cookie, self.handler, d)
+            pid = process.pid
+
+            ref = self.handler.createRef()
+            msg = Tuple((Atom("$gen_call"), Tuple((pid, ref)),
+                         Tuple((Atom("is_auth"), Atom(self.nodeName)))))
+            self.handler.namedSend(instance, pid, Atom("net_kernel"), msg)
+            return d
         return self._getNodeConnection(nodeName).addCallback(doPing)
 
 
@@ -855,8 +716,17 @@ class Process(object):
         RPC call against node C{nodeName}.
         """
         def doCallRemote(instance):
-            return self.handler._callRemoteWithPid(
-                instance, self.pid, module, func, *args)
+            d = Deferred()
+            process = RexResponseProcess(
+                self.nodeName, self.cookie, self.handler, d)
+            pid = process.pid
+
+            call = Tuple((Atom("call"), Atom(module), Atom(func), List(args),
+                          Atom("user")))
+            rpc =  Tuple((pid, call))
+
+            self.handler.namedSend(instance, pid, Atom("rex"), rpc)
+            return d
         return self._getNodeConnection(nodeName).addCallback(doCallRemote)
 
 
@@ -937,7 +807,7 @@ class Process(object):
         return self._getNodeConnection(nodeName).addCallback(doSend)
 
 
-    def _receivedData(self, pid, msg):
+    def _receivedData(self, proto, ctrlMessage, message):
         """
         Callback called when a message has been send to this pid.
         """
@@ -946,9 +816,9 @@ class Process(object):
                 self._cancelReceiveID.cancel()
                 self._cancelReceiveID = None
             d, self._receiveDeferred = self._receiveDeferred, None
-            d.callback(msg)
+            d.callback(message)
         else:
-            self._pendingReceivedData.append(msg)
+            self._pendingReceivedData.append(message)
 
 
     def _cancelReceive(self):
@@ -995,6 +865,164 @@ class Process(object):
         if self._receiveDeferred is not None:
             d, self._receiveDeferred = self._receiveDeferred, None
             d.errback(ProcessExited(reason))
+
+
+
+class Process(ProcessBase):
+    """
+    The master process, managing C{rex} and C{net_kernel} process.
+    """
+
+    def __init__(self, nodeName, cookie):
+        ProcessBase.__init__(self, nodeName, cookie)
+        self._methodsHolder = {}
+        rex = RexProcess(nodeName, cookie, self.handler, self._methodsHolder)
+        rex.register("rex")
+        netKernel = NetKernelProcess(nodeName, cookie, self.handler)
+        netKernel.register("net_kernel")
+
+
+    def registerModule(self, name, instance):
+        """
+        Register a method holder for module named C{name}.
+        """
+        self._methodsHolder[name] = instance
+
+
+
+class RexProcess(ProcessBase):
+    """
+    The C{rex} process: specific process able to receive RPC calls.
+    """
+
+    def __init__(self, nodeName, cookie, handler, methodsHolder):
+        ProcessBase.__init__(self, nodeName, cookie, handler)
+        self._methodsHolder = methodsHolder
+
+
+    def _receivedData(self, proto, ctrlMessage, message):
+        """
+        Parse messages and forward data to the appropriate method, if any.
+        """
+        toPid = message[1][0]
+        ref = message[1][1]
+        module = message[2][1].text
+        func = message[2][2].text
+        args = message[2][3]
+        if module in self._methodsHolder:
+            proxy = getattr(self._methodsHolder[module],
+                            "remote_%s" % (func,), None)
+
+            if proxy is None:
+                log.msg("Unknow method %r of module %r" % (func, module))
+
+                self.handler.send(proto, toPid, Tuple((ref, (Atom('badrpc'),
+                                  "undefined function %r" % (func,)))))
+            else:
+                log.msg("Remote call to method %r" % (func,))
+                d = maybeDeferred(proxy, proto, *args)
+                d.addCallback(self._forwardResponse, proto, toPid, ref)
+                d.addErrback(self._forwardError, proto, toPid, ref)
+        else:
+            log.msg("No holder registered for %r" % (module,))
+            self.handler.send(proto, toPid, Tuple((ref, (Atom('badrpc'),
+                              "undefined module %r" % (module,)))))
+
+
+    def _forwardResponse(self, result, proto, toPid, ref):
+        """
+        Forward a response to an erlang node from a python method.
+        """
+        if result is None:
+            result = Atom("null")
+        else:
+            result = Tuple((Atom("ok"), result))
+        self.handler.send(proto, toPid, Tuple((ref, result)))
+
+
+    def _forwardError(self, error, proto, toPid, ref):
+        """
+        Forward the string representation of the exception to the node.
+        """
+        log.handler.err(error)
+        self.send(proto, toPid,
+            Tuple((ref, (Atom('badrpc'), str(error.value)))))
+
+
+
+class RexResponseProcess(ProcessBase):
+    """
+    A volatile process used to manage one response to a callRemote.
+    """
+
+    def __init__(self, nodeName, cookie, handler, deferred):
+        ProcessBase.__init__(self, nodeName, cookie, handler)
+        self.deferred = deferred
+
+
+    def _receivedData(self, proto, ctrlMessage, message):
+        """
+        Parse the message and fire the deferred with appropriate content.
+        """
+        d = self.deferred
+        if (isinstance(message[1], (list, tuple)) and
+            len(message[1]) > 0 and message[1][0] == Atom("badrpc")):
+            d.errback(BadRPC(message[1][1]))
+        else:
+            d.callback(message[1])
+
+
+
+class NetKernelProcess(ProcessBase):
+    """
+    A process managing net_kernel calls: it only implements ping responses for
+    now.
+    """
+
+    def _receivedData(self, proto, ctrlMessage, message):
+        """
+        Handle regsend reply for net_kernel module.
+        """
+        if message[0].text == "$gen_call":
+            if message[2][0].text == "is_auth":
+                # Reply to ping
+                toPid = message[1][0]
+                ref = message[1][1]
+                resp = Tuple((ref, Atom("yes")))
+            elif message[2][0].text == "spawn":
+                toPid = message[1][0]
+                ref = message[1][1]
+                # Don't handle that for now
+                resp = Tuple((ref, Atom("error")))
+            else:
+                log.msg("Unhandled method %s" % (message[2][0].text,))
+                resp = Tuple((ref, Atom("error")))
+        else:
+            log.msg("Unhandled call %s" % (message[0].text,))
+            resp = Tuple((ref, Atom("error")))
+        self.handler.send(proto, toPid, resp)
+
+
+
+class NetKernelResponseProcess(ProcessBase):
+    """
+    A process managing net_kernel responses: it only implements ping for now.
+    """
+
+    def __init__(self, nodeName, cookie, handler, deferred):
+        ProcessBase.__init__(self, nodeName, cookie, handler)
+        self.deferred = deferred
+
+
+    def _receivedData(self, proto, ctrlMessage, message):
+        """
+        Handle ping reply.
+        """
+        d = self.deferred
+        if message[1].text == "yes":
+            d.callback("pong")
+        else:
+            d.callback("pang")
 
 
 
