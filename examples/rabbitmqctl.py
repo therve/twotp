@@ -1,3 +1,6 @@
+# Copyright (c) 2007-2009 Thomas Herve <therve@free.fr>.
+# See LICENSE for details.
+
 """
 Example emulating rabbitmqctl, just calling list_vhosts for now.
 """
@@ -5,7 +8,6 @@ Example emulating rabbitmqctl, just calling list_vhosts for now.
 from twisted.internet import reactor
 
 from twotp import Process, readCookie, buildNodeName
-
 
 
 def testListVhost(process):
