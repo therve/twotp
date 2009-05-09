@@ -142,6 +142,97 @@ reactor.run()
 {ok,6}
     </pre>
 
+    <h2>Using the twotp twisted plugin</h2>
+
+    <p>
+        When you install twotp, and type
+        <code class="shell">twistd --help</code> in a shell, you should see a
+        new <code>twotp</code> command. It has several options:
+    </p>
+
+<pre class="shell">
+$ twistd twotp --help
+Usage: twistd [options] twotp [options]
+Options:
+  -n, --nodename=  Name of the node [default: twisted]
+  -c, --cookie=    Erlang cookie value [default: ]
+  -m, --methods=   Methods holder [default: ]
+      --version    
+      --help       Display this help and exit.
+</pre>
+
+    <ul>
+        <li>
+            <code>-n</code> or <code>--nodename</code> let you specify the name
+            of the node. It's the equivalent of the <code>-sname</code> option
+            of <code>erl</code>.
+        </li>
+        <li>
+            <code>-c</code> or <code>--cookie</code> let you specify the
+            coookie. It's the equivalent of the <code>-setcookie</code> option
+            of <code>erl</code>.
+        </li>
+        <li>
+            <code>-m</code> or <code>--methods</code> let you specify the
+            methods you want to publish. It takes the fully qualified name of a
+            python dictionary.
+        </li>
+    </ul>
+
+    <p>
+        Let's create a module rpc.py and put some objects with methods in them.
+    </p>
+
+<pre class="python">
+class File(object):
+
+    def remote_get_cwd(self):
+        from twisted.python import filepath
+        return filepath.FilePath(".").path
+        
+
+class Time(object):
+
+    def remote_get_time(self):
+        import time
+        return time.time()
+
+
+methods = {"file": File(), "time": Time()}
+</pre>
+
+    <p>
+        Then launch on the command line twistd, after making sure your module
+        is in an importable place.
+    </p>
+
+<pre class="shell">
+$ twistd -n twotp --methods rpc.methods
+2009-05-09 21:24:31+0200 [-] Log opened.
+2009-05-09 21:24:31+0200 [-] twistd 8.2.0+r26899 (/usr/bin/python 2.5.2) starting up.
+2009-05-09 21:24:31+0200 [-] reactor class: twisted.internet.selectreactor.SelectReactor.
+2009-05-09 21:24:31+0200 [-] &lt;class 'twotp.server.NodeServerFactory'&gt; starting on 40962
+2009-05-09 21:24:31+0200 [-] Starting factory &lt;twotp.server.NodeServerFactory object at 0x9896b2c&gt;
+2009-05-09 21:24:31+0200 [-] Starting factory &lt;twotp.epmd.PersistentPortMapperFactory instance at 0x952978c&gt;
+2009-05-09 21:24:31+0200 [Uninitialized] Connection made with EPMD
+</pre>
+
+    <p>
+        This is it! You've exposed methods callable from Erlang. Let's fire an
+        erlang shell to try.
+    </p>
+
+<pre class="shell">
+(erlang@node)1&gt; rpc:call(twisted@node, file, get_cwd, []).
+{ok,"/home/user"}
+(erlang@node)2&gt; rpc:call(twisted@node, time, get_time, []).
+{ok,1241897194.455415}
+</pre>
+
+    <p>
+        Now try and define some interesting methods instead.
+    </p>
+
     <h2>Linking and monitoring an Erlang process</h2>
 
     <p>
