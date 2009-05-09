@@ -11,7 +11,7 @@ from twisted.internet.error import ConnectionDone
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
 from twotp.client import NodeClientProtocol, NodeClientFactory
-from twotp.parser import theParser
+from twotp.node import MessageHandler
 from twotp.test.util import TestCase
 
 
@@ -43,11 +43,9 @@ class DummyClientFactory(object):
         Initialize with testable values.
         """
         self.times = range(10)
-        self.nodeName = "spam@egg"
-        self.cookie = "test_cookie"
         self.netTickTime = 30
         self._connectDeferred = Deferred()
-        self._parser = theParser
+        self.handler = MessageHandler({}, "spam@egg", "test_cookie")
 
 
     def timeFactory(self):

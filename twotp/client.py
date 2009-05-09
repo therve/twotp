@@ -46,7 +46,7 @@ class NodeClientProtocol(NodeProtocol):
         """
         if len(data) < 2:
             return data
-        packetLen = self.factory._parser.parseShort(data[0:2])
+        packetLen = self.factory.handler._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
         packetData = data[2:packetLen+2]
@@ -74,7 +74,7 @@ class NodeClientProtocol(NodeProtocol):
         """
         if len(data) < 2:
             return data
-        packetLen = self.factory._parser.parseShort(data[0:2])
+        packetLen = self.factory.handler._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
         packetData = data[2:packetLen+2]
@@ -97,7 +97,7 @@ class NodeClientProtocol(NodeProtocol):
         """
         if len(data) < 2:
             return data
-        packetLen = self.factory._parser.parseShort(data[0:2])
+        packetLen = self.factory.handler._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
         packetData = data[2:packetLen+2]
@@ -106,7 +106,8 @@ class NodeClientProtocol(NodeProtocol):
                 InvalidIdentifier("Got %r instead of 'a'" % (packetData[0],)))
             return ""
         peerDigest = packetData[1:]
-        ownDigest = self.generateDigest(self.challenge, self.factory.cookie)
+        ownDigest = self.generateDigest(
+            self.challenge, self.factory.handler.cookie)
         if peerDigest != ownDigest:
             self.notifyFailure(
                 InvalidDigest("Digest doesn't match, node disallowed"))
@@ -130,9 +131,9 @@ class NodeClientProtocol(NodeProtocol):
         """
         Send name for introduction message.
         """
-        flags = struct.pack(
-            "!HI", self.factory.distrVersion, self.factory.distrFlags)
-        msg = "n%s%s" % (flags, self.factory.nodeName)
+        handler = self.factory.handler
+        flags = struct.pack("!HI", handler.distrVersion, handler.distrFlags)
+        msg = "n%s%s" % (flags, handler.nodeName)
         self.send(msg)
 
 
@@ -140,7 +141,7 @@ class NodeClientProtocol(NodeProtocol):
         """
         Send reply to challenge.
         """
-        digest = self.generateDigest(challenge, self.factory.cookie)
+        digest = self.generateDigest(challenge, self.factory.handler.cookie)
         self.challenge = self.generateChallenge()
         msg = "r" + thePacker.packInt(self.challenge) + digest
         self.send(msg)

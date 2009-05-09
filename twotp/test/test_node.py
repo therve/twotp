@@ -10,10 +10,13 @@ from twisted.internet.defer import Deferred
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
 from twotp.node import NodeProtocol, buildNodeName, getHostName, MessageHandler
-from twotp.node import BadRPC
+from twotp.node import BadRPC, Process
+from twotp.server import NodeServerFactory
 from twotp.term import Pid, Atom, Reference
-from twotp.parser import theParser
 from twotp.test.util import TestCase
+
+from twotp.test.test_epmd import TestablePPMF, TestableOSPMF
+from twotp.test.test_client import DummyClientFactory
 
 
 
@@ -42,11 +45,9 @@ class DummyFactory(object):
         Initialize with testable values.
         """
         self.times = range(1, 10)
-        self.nodeName = "spam@egg"
-        self.cookie = "test_cookie"
         self.netTickTime = 1
         self.creation = 2
-        self._parser = theParser
+        self.handler = MessageHandler({}, "spam@egg", "test_cookie")
 
 
     def timeFactory(self):
@@ -98,8 +99,7 @@ class NodeProtocolTestCase(TestCase):
 
     def test_noResponseTimer(self):
         """
-        If no message are received for a period of time, connection should be
-        dropped.
+        If no message are received for a period of time, connection is dropped.
         """
         self.proto.startTimer()
         self.assertFalse(self.transport.closed)
@@ -109,7 +109,7 @@ class NodeProtocolTestCase(TestCase):
 
     def test_noResponseTimerAfterOneResponse(self):
         """
-        The response timer should reschedule itself.
+        The response timer reschedules itself.
         """
         self.factory.times = [1, 1, 1, 1, 1, 4]
         self.proto.state = "connected"
@@ -126,8 +126,7 @@ class NodeProtocolTestCase(TestCase):
 
     def test_noTickTimer(self):
         """
-        If no message are sent for a period of time, an empty mesage should be
-        sent.
+        If no message are sent for a period of time, an empty mesage is sent.
         """
         called = []
         def send(data):
@@ -168,8 +167,7 @@ class NodeProtocolTestCase(TestCase):
 
     def test_generateChallenge(self):
         """
-        Test output value of generateChallenge: it should truncate data on 28
-        bits.
+        Test output value of generateChallenge: it truncates data on 28 bits.
         """
         self.assertEquals(self.proto.generateChallenge(), 2)
         data = [0x7fffffff + 2]
@@ -193,7 +191,7 @@ class NodeProtocolTestCase(TestCase):
         calls = []
         def cb(proto, result):
             calls.append((proto, result))
-        self.factory.passThroughMessage = cb
+        self.factory.handler.passThroughMessage = cb
         self.proto.dataReceived("\x00\x00\x00\x06p\x83h\x01a\x01")
         self.assertEquals(calls, [(self.proto, (1,))])
 
@@ -216,7 +214,7 @@ class UtilitiesTestCase(TestCase):
 
     def test_getHostName(self):
         """
-        Tests for C{getHostName}: it should return a non empty string.
+        Tests for C{getHostName}: it returns a non empty string.
         """
         hostName = getHostName()
         self.assertIsInstance(hostName, str)
@@ -233,7 +231,7 @@ class MessageHandlerTestCase(TestCase):
         """
         Create a C{MessageHandler} for the tests.
         """
-        self.handler = MessageHandler()
+        self.handler = MessageHandler({}, "spam@egg", "test_cookie")
 
 
     def test_send(self):
@@ -281,7 +279,7 @@ class MessageHandlerTestCase(TestCase):
         """
         srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
         destPid = Pid(Atom("spam@egg"), 0, 0, 0)
-        destPid.link(None, srcPid, _received=True)
+        destPid.link(None, srcPid)
         # Sanity check
         self.assertNotEquals(destPid._links, set([]))
 
@@ -314,7 +312,7 @@ class MessageHandlerTestCase(TestCase):
         """
         srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
         destPid = Pid(Atom("spam@egg"), 0, 0, 0)
-        destPid.link(None, srcPid, _received=True)
+        destPid.link(None, srcPid)
         called = []
         destPid.addExitHandler(srcPid, lambda *args: called.append(args))
 
@@ -330,7 +328,7 @@ class MessageHandlerTestCase(TestCase):
         """
         srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
         destPid = Pid(Atom("spam@egg"), 0, 0, 0)
-        destPid.link(None, srcPid, _received=True)
+        destPid.link(None, srcPid)
         called = []
         destPid.addExitHandler(srcPid, lambda *args: called.append(args))
 
@@ -363,7 +361,7 @@ class MessageHandlerTestCase(TestCase):
         """
         srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
         destPid = Pid(Atom("spam@egg"), 0, 0, 0)
-        destPid.link(None, srcPid, _received=True)
+        destPid.link(None, srcPid)
         called = []
         destPid.addExitHandler(srcPid, lambda *args: called.append(args))
 
@@ -380,7 +378,7 @@ class MessageHandlerTestCase(TestCase):
         """
         srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
         destPid = Pid(Atom("spam@egg"), 0, 0, 0)
-        destPid.link(None, srcPid, _received=True)
+        destPid.link(None, srcPid)
         called = []
         destPid.addExitHandler(srcPid, lambda *args: called.append(args))
 
@@ -507,8 +505,7 @@ class MessageHandlerTestCase(TestCase):
         pid = Pid(Atom("foo@bar"), 0, 0, 0)
         ctrlMessage = (self.handler.CTRLMSGOP_REG_SEND, pid, "cookie",
                        Atom("foo"))
-        self.assertRaises(AttributeError,
-            self.handler.passThroughMessage, None, ctrlMessage, None)
+        self.handler.passThroughMessage(None, ctrlMessage, None)
 
 
     def test_ping(self):
@@ -753,8 +750,8 @@ class MessageHandlerTestCase(TestCase):
 
     def test_createPortReset(self):
         """
-        L{MessageHandler.createPort} should reset the port value to 0 when it
-        reaches the 0xfffffff value.
+        L{MessageHandler.createPort} resets the port value to 0 when it reaches
+        the 0xfffffff value.
         """
         proto = TestableNodeProtocol()
         self.handler.portCount = 0xfffffff
@@ -780,3 +777,154 @@ class MessageHandlerTestCase(TestCase):
 
         port = self.handler.createPort()
         self.assertEquals(port.portId, 0)
+
+
+
+class TestableProcessOSMPF(TestableOSPMF):
+    """
+    An even more testable L{OneShotPortMapperFactory}.
+    """
+
+    def __init__(self, *args, **kwargs):
+        TestableOSPMF.__init__(self, *args, **kwargs)
+        self.factories = []
+        self.factoriesArgs = []
+
+
+    def nodeFactoryClass(self, *args):
+        """
+        Keep track of the created factory and its arguments.
+        """
+        clientFactory = DummyClientFactory()
+        self.factoriesArgs.append(args)
+        self.factories.append(clientFactory)
+        return clientFactory
+
+
+
+class TestableProcess(Process):
+    """
+    A testable version of L{Process}.
+    """
+
+    def oneShotPortMapperClass(self):
+        """
+        Return L{TestableProcessOSMPF} instead of L{OneShotPortMapperFactory}
+        for making tests easier.
+        """
+        return TestableProcessOSMPF
+    oneShotPortMapperClass = property(oneShotPortMapperClass)
+
+
+    def persistentPortMapperClass(self):
+        """
+        Return L{TestablePPMF} instead of L{PersistentPortMapperFactory} for
+        making tests easier.
+        """
+        return TestablePPMF
+    persistentPortMapperClass = property(persistentPortMapperClass)
+
+
+
+class ProcessTestCase(TestCase):
+    """
+    Tests for L{Process}.
+    """
+
+    def setUp(self):
+        self.clock = Clock()
+        self.process = TestableProcess("foo@bar", "test_cookie")
+        self.process.callLater = self.clock.callLater
+
+
+    def test_listen(self):
+        """
+        L{Process.listen} creates an instance of
+        L{PersistentPortMapperFactory}, and asks it to publish the passed
+        C{methodsHolder}. Once done, it set the calls handler of the server
+        factory to the process calls handler.
+        """
+        holder = object()
+        d = self.process.listen(spam=holder)
+        self.process.persistentEpmd._connectDeferred.callback(2)
+        def check(ignored):
+            factory = self.process.serverFactory
+            self.assertIsInstance(factory, NodeServerFactory)
+            self.assertIdentical(factory.handler, self.process.handler)
+            self.assertEquals(
+                self.process.handler.methodsHolder, {"spam": holder})
+        return d.addCallback(check)
+
+
+    def test_getNodeConnection(self):
+        """
+        L{Process._getNodeConnection}, if no connection is established, as a
+        connection to a L{OneShotPortMapperFactory}. Once it gets a connection
+        it sets the calls handler to the client factory to the process handler.
+        """
+        d = self.process._getNodeConnection("egg@spam")
+
+        epmd = self.process.oneShotEpmds["spam"]
+        transport = StringTransportWithDisconnection()
+        proto = epmd.buildProtocol(("127.0.01", 4369))
+        proto.makeConnection(transport)
+        transport.protocol = proto
+        self.assertEquals(transport.value(), "\x00\x04zegg")
+        self.assertEquals(epmd.connect, [("spam", 4369, epmd)])
+        proto.dataReceived(
+            "w\x00\x00\x09M\x01\x00\x05\x00\x05\x00\x03bar\x00")
+
+        [factory] = epmd.factories
+        self.assertEquals(
+            epmd.factoriesArgs,
+            [({}, "foo@bar", "test_cookie", epmd.onConnectionLost)])
+
+        clientProto = TestableNodeProtocol()
+        clientProto.factory = factory
+        factory._connectDeferred.callback(clientProto)
+        def check(proto):
+            self.assertIdentical(proto, clientProto)
+            self.assertIdentical(factory.handler, self.process.handler)
+        return d.addCallback(check)
+
+
+    def test_getNodeConnectionFromServerCache(self):
+        """
+        L{Process._getNodeConnection} uses the server factory cache to retrieve
+        connections, if they exist in here.
+        """
+        class FakeServerFactory(object):
+            _nodeCache = None
+
+        self.process.serverFactory = FakeServerFactory()
+        instance = object()
+        self.process.serverFactory._nodeCache = {"egg@spam": instance}
+        d = self.process._getNodeConnection("egg@spam")
+        d.addCallback(self.assertIdentical, instance)
+        return d
+
+
+    def test_ping(self):
+        """
+        L{Process.ping} allows to make a ping request against another node.
+        """
+        class FakeServerFactory(object):
+            _nodeCache = None
+
+        self.process.serverFactory = FakeServerFactory()
+        factory = DummyFactory()
+        proto = TestableNodeProtocol()
+        transport = CloseNotifiedTransport()
+        proto.factory = factory
+        proto.makeConnection(transport)
+        transport.protocol = proto
+        self.process.serverFactory._nodeCache = {"egg@spam": proto}
+
+        d = self.process.ping("egg@spam")
+        proto.state = "connected"
+        pid = Pid(Atom("foo@bar"), 0, 0, 0)
+        ref = Reference(Atom("foo@bar"), 0, 0)
+        yes = Atom("yes")
+
+        self.process.handler.operation_send(proto, (Atom(""), pid), (ref, yes))
+        return d.addCallback(self.assertEquals, "pong")

@@ -18,7 +18,7 @@ from twotp import OneShotPortMapperFactory, readCookie, buildNodeName
 
 def testPing(epmdFactory):
     def cb(inst):
-        return inst.factory.ping(inst).addCallback(cb3)
+        return inst.factory.handler.ping(inst).addCallback(cb3)
 
     def cb3(resp):
         print "Got response", resp
@@ -53,7 +53,7 @@ class Proxy(object):
 
     def remote_test_link(self, proto, pid):
         if self.localPid is None:
-            self.localPid = proto.factory.createPid()
+            self.localPid = proto.factory.handler.createPid()
         self.localPid.link(proto, pid)
         self.localPid.addExitHandler(pid, self.onExit)
         return pid
@@ -61,7 +61,7 @@ class Proxy(object):
 
     def remote_get_pid(self, proto):
         if self.localPid is None:
-            self.localPid = proto.factory.createPid()
+            self.localPid = proto.factory.handler.createPid()
         return self.localPid
 
 
@@ -72,7 +72,7 @@ class Proxy(object):
 
     def remote_test_monitor(self, proto, pid):
         if self.localPid is None:
-            self.localPid = proto.factory.createPid()
+            self.localPid = proto.factory.handler.createPid()
         ref = self.localPid.monitor(proto, pid)
         self.localPid.addMonitorHandler(ref, self.onExit)
         return ref
@@ -84,14 +84,14 @@ class Proxy(object):
 
 
     def remote_test_send(self, proto, pid):
-        proto.factory.send(proto, pid, Atom("test"))
+        proto.factory.handler.send(proto, pid, Atom("test"))
         return ()
 
 
     def remote_test_named_send(self, proto, name):
         if self.localPid is None:
-            self.localPid = proto.factory.createPid()
-        proto.factory.namedSend(proto, self.localPid, name, Atom("test"))
+            self.localPid = proto.factory.handler.createPid()
+        proto.factory.handler.namedSend(proto, self.localPid, name, Atom("test"))
         return ()
 
 

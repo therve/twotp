@@ -11,7 +11,7 @@ from twisted.test.proto_helpers import StringTransportWithDisconnection
 
 from twotp.server import NodeServerProtocol, NodeServerFactory
 from twotp.test.util import TestCase
-from twotp.parser import theParser
+from twotp.node import MessageHandler
 
 
 
@@ -28,10 +28,8 @@ class DummyServerFactory(object):
         Initialize with testable values.
         """
         self.times = range(10)
-        self.nodeName = "spam@egg"
-        self.cookie = "test_cookie"
         self.netTickTime = 30
-        self._parser = theParser
+        self.handler = MessageHandler({}, "spam@egg", "test_cookie")
 
 
     def timeFactory(self):

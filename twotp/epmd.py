@@ -363,8 +363,8 @@ class OneShotPortMapperFactory(ClientFactory):
         """
         Called when a connection is lost with a node.
         """
-        if factory.nodeName in self._nodeCache:
-            del self._nodeCache[factory.nodeName]
+        if factory.handler.nodeName in self._nodeCache:
+            del self._nodeCache[factory.handler.nodeName]
 
 
     def buildProtocol(self, addr):

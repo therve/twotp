@@ -37,14 +37,15 @@ class NodeServerProtocol(NodeProtocol):
         """
         if len(data) < 2:
             return data
-        packetLen = self.factory._parser.parseShort(data[0:2])
+        parser = self.factory.handler._parser
+        packetLen = parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
         packetData = data[2:packetLen+2]
         if packetData[0] != "n":
             raise InvalidIdentifier("Got %r instead of 'n'" % (packetData[0],))
-        self.peerVersion = self.factory._parser.parseShort(packetData[1:3])
-        self.peerFlags = self.factory._parser.parseInt(packetData[3:7])
+        self.peerVersion = parser.parseShort(packetData[1:3])
+        self.peerFlags = parser.parseInt(packetData[3:7])
         self.peerName = packetData[7:]
         self.send("sok")
         self.sendChallenge()
@@ -58,15 +59,16 @@ class NodeServerProtocol(NodeProtocol):
         """
         if len(data) < 2:
             return data
-        packetLen = self.factory._parser.parseShort(data[0:2])
+        packetLen = self.factory.handler._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
         packetData = data[2:packetLen+2]
         if packetData[0] != "r":
             raise InvalidIdentifier("Got %r instead of 'r'" % (packetData[0],))
-        peerChallenge = self.factory._parser.parseInt(packetData[1:5])
+        peerChallenge = self.factory.handler._parser.parseInt(packetData[1:5])
         peerDigest = packetData[5:]
-        ownDigest = self.generateDigest(self.challenge, self.factory.cookie)
+        ownDigest = self.generateDigest(
+            self.challenge, self.factory.handler.cookie)
         if peerDigest != ownDigest:
             raise InvalidDigest("Digest doesn't match, node disallowed")
         self.sendAck(peerChallenge)
@@ -83,10 +85,10 @@ class NodeServerProtocol(NodeProtocol):
         Send initial challenge.
         """
         self.challenge = self.generateChallenge()
+        handler = self.factory.handler
         flags = struct.pack(
-            "!HII", self.factory.distrVersion, self.factory.distrFlags,
-                    self.challenge)
-        msg = "n%s%s" % (flags, self.factory.nodeName)
+            "!HII", handler.distrVersion, handler.distrFlags, self.challenge)
+        msg = "n%s%s" % (flags, handler.nodeName)
         self.send(msg)
 
 
@@ -94,7 +96,7 @@ class NodeServerProtocol(NodeProtocol):
         """
         Send final ack after challenge check.
         """
-        msg = "a" + self.generateDigest(challenge, self.factory.cookie)
+        msg = "a" + self.generateDigest(challenge, self.factory.handler.cookie)
         self.send(msg)
 
 

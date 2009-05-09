@@ -13,7 +13,9 @@ try:
 except ImportError:
     from md5 import md5
 
-from twisted.internet import protocol, defer
+from twisted.internet.protocol import Protocol
+from twisted.internet.defer import (
+    succeed, Deferred, maybeDeferred, TimeoutError)
 from twisted.python import log
 
 from twotp.term  import Tuple, Atom, Integer, Reference, Pid, List, Port
@@ -89,10 +91,14 @@ class MessageHandler(object):
     cookie = ""
     creation = 0
 
-    def __init__(self):
+    def __init__(self, methodsHolder, nodeName, cookie):
         """
         Instantiate the handler and its operation mapping.
         """
+        self.methodsHolder = methodsHolder
+        self.nodeName = nodeName
+        self.cookie = cookie
+
         self.refIds = [1, 0, 0]
         self._mapping = {}
         for name, val in MessageHandler.__dict__.iteritems():
@@ -101,6 +107,8 @@ class MessageHandler(object):
                 self._mapping[val] = getattr(self, 'operation_%s' % (name,))
         self._pendingResponses = {}
         self._parser = ParserWithPidCache()
+        self._namedProcesses = {}
+        self._registeredProcesses = {}
 
 
     def operation_send(self, proto, controlMessage, message):
@@ -108,8 +116,13 @@ class MessageHandler(object):
         Manage C{CTRLMSGOP_SEND}.
         """
         destPid = controlMessage[1]
-        d = self._pendingResponses[destPid].pop(0)
-        d.callback((controlMessage, message))
+        if destPid in self._pendingResponses:
+            d = self._pendingResponses[destPid].pop(0)
+            d.callback((controlMessage, message))
+        elif destPid in self._registeredProcesses:
+            self._registeredProcesses[destPid](controlMessage[0], message)
+        else:
+            log.msg("Send to unknown process %r" % (destPid,))
 
 
     def operation_exit(self, proto, controlMessage, message):
@@ -127,7 +140,7 @@ class MessageHandler(object):
         """
         srcPid = controlMessage[0]
         destPid = controlMessage[1]
-        destPid.link(proto, srcPid, _received=True)
+        destPid.link(proto, srcPid)
 
 
     def operation_unlink(self, proto, controlMessage, message):
@@ -136,7 +149,7 @@ class MessageHandler(object):
         """
         srcPid = controlMessage[0]
         destPid = controlMessage[1]
-        destPid.unlink(proto, srcPid, _received=True)
+        destPid.unlink(proto, srcPid)
 
 
     def operation_node_link(self, proto, controlMessage, message):
@@ -266,7 +279,7 @@ class MessageHandler(object):
                          "undefined function %r" % (func,)))))
             else:
                 log.msg("Remote call to method %r" % (func,))
-                d = defer.maybeDeferred(proxy, proto, *args)
+                d = maybeDeferred(proxy, proto, *args)
                 d.addCallback(self._forwardResponse, proto, toPid, ref)
                 d.addErrback(self._forwardError, proto, toPid, ref)
         else:
@@ -283,8 +296,13 @@ class MessageHandler(object):
         fromPid = controlMessage[0]
         cookie = controlMessage[1]
         toName = controlMessage[2]
-        subHandler = getattr(self, "regsend_%s" % (toName.text,))
-        return subHandler(proto, message)
+        subHandler = getattr(self, "regsend_%s" % (toName.text,), None)
+        if subHandler is not None:
+            return subHandler(proto, message)
+        elif toName.text in self._namedProcesses:
+           self._namedProcesses[toName.text](fromPid, message)
+        else:
+            log.msg("Send to unknown process name %r" % (toName.text,))
 
 
     def _forwardResponse(self, result, proto, toPid, ref):
@@ -321,7 +339,8 @@ class MessageHandler(object):
         Send a message to a named process.
         """
         cookie = Atom('')
-        ctrlMsg = Tuple((Integer(self.CTRLMSGOP_REG_SEND), cookie, pid, processName))
+        ctrlMsg = Tuple(
+            (Integer(self.CTRLMSGOP_REG_SEND), cookie, pid, processName))
         proto.send("p" + termToBinary(ctrlMsg) + termToBinary(msg))
 
 
@@ -345,7 +364,7 @@ class MessageHandler(object):
         """
         Helper method doing a callRemote for the specified C{pid}.
         """
-        d = defer.Deferred()
+        d = Deferred()
 
         cookie = Atom('')
         call = Tuple((Atom("call"), Atom(module), Atom(func), List(args),
@@ -377,7 +396,7 @@ class MessageHandler(object):
         """
         Helper method doing a ping for the specified C{pid}.
         """
-        d = defer.Deferred()
+        d = Deferred()
 
         cookie = Atom('')
         ref = self.createRef()
@@ -508,7 +527,7 @@ class MessageHandler(object):
 
 
 
-class NodeProtocol(protocol.Protocol):
+class NodeProtocol(Protocol):
     """
     @ivar state: 'handshake', 'challenge', 'connected'.
     @type state: C{str}
@@ -632,7 +651,8 @@ class NodeProtocol(protocol.Protocol):
         """
         self.received += data
         while self.received:
-            remainData = getattr(self, "handle_%s" % (self.state,))(self.received)
+            remainData = getattr(
+                self, "handle_%s" % (self.state,))(self.received)
             if len(remainData) == len(self.received):
                 # Data remains unchanged, so there's nothing more to see here
                 break
@@ -646,7 +666,7 @@ class NodeProtocol(protocol.Protocol):
         """
         if len(data) < 4:
             return data
-        packetLen = self.factory._parser.parseInt(data[0:4])
+        packetLen = self.factory.handler._parser.parseInt(data[0:4])
         if len(data) < packetLen + 4:
             # Incomplete packet.
             return data
@@ -655,11 +675,13 @@ class NodeProtocol(protocol.Protocol):
             # Tick
             pass
         elif packetData[0] == "p":
-            terms = list(self.factory._parser.binaryToTerms(packetData[1:]))
+            terms = list(
+                self.factory.handler._parser.binaryToTerms(packetData[1:]))
             if len(terms) == 2:
-                self.factory.passThroughMessage(self, terms[0], terms[1])
+                self.factory.handler.passThroughMessage(
+                    self, terms[0], terms[1])
             elif len(terms) == 1:
-                self.factory.passThroughMessage(self, terms[0])
+                self.factory.handler.passThroughMessage(self, terms[0])
             else:
                 log.msg("Unhandled terms")
         else:
@@ -681,7 +703,7 @@ class NodeProtocol(protocol.Protocol):
 
 
 
-class NodeBaseFactory(MessageHandler):
+class NodeBaseFactory(object):
     """
     Mixin factory for client and server node connections.
 
@@ -717,10 +739,262 @@ class NodeBaseFactory(MessageHandler):
         @type cookie: cookie used for authorization between nodes.
         @param cookie: C{str}
         """
-        MessageHandler.__init__(self)
-        self.methodsHolder = methodsHolder
+        self.handler = MessageHandler(methodsHolder, nodeName, cookie)
+
+
+
+class ProcessExited(Exception):
+    """
+    Exception raised when trying to use an exited process.
+    """
+
+
+
+class Process(object):
+    """
+    Represent the an Erlang-like process in your Twisted application, able to
+    communicate with Erlang nodes.
+    """
+    persistentEpmd = None
+    serverFactory = None
+    pid = None
+    _receiveDeferred = None
+    _cancelReceiveID = None
+
+    def __init__(self, nodeName, cookie):
         self.nodeName = nodeName
         self.cookie = cookie
+        self.oneShotEpmds = {}
+        self._pendingReceivedData = []
+        self.handler = MessageHandler({}, nodeName, cookie)
+        self.pid = self.handler.createPid()
+        self.handler._registeredProcesses[self.pid] = self._receivedData
+
+
+    def callLater(self, interval, f):
+        """
+        Wrapper around C{reactor.callLater} for test purpose.
+        """
+        from twisted.internet import reactor
+        return reactor.callLater(interval, f)
+
+
+    def oneShotPortMapperClass(self):
+        """
+        Property serving L{OneShotPortMapperFactory}, to be customized in
+        tests.
+        """
+        from twotp.epmd import OneShotPortMapperFactory
+        return OneShotPortMapperFactory
+    oneShotPortMapperClass = property(oneShotPortMapperClass)
+
+
+    def persistentPortMapperClass(self):
+        """
+        Property serving L{PersistentPortMapperFactory}, to be customized in
+        tests.
+        """
+        from twotp.epmd import PersistentPortMapperFactory
+        return PersistentPortMapperFactory
+    persistentPortMapperClass = property(persistentPortMapperClass)
+
+
+    def listen(self, **methodsHolder):
+        """
+        Start a listening process able to receive calls from other Erlang
+        nodes.
+        """
+        if self.persistentEpmd is not None:
+            raise RuntimeError("Already listening")
+        self.handler.methodsHolder = methodsHolder
+        self.persistentEpmd = self.persistentPortMapperClass(
+            self.nodeName, self.cookie)
+        def gotFactory(factory):
+            self.serverFactory = factory
+            factory.handler = self.handler
+        return self.persistentEpmd.publish().addCallback(gotFactory)
+
+
+    def _getNodeConnection(self, nodeName):
+        """
+        Retrieve a connection to node C{nodeName}.
+        """
+        nodeName = buildNodeName(nodeName)
+        if (self.serverFactory is not None and
+            nodeName in self.serverFactory._nodeCache):
+            return succeed(self.serverFactory._nodeCache[nodeName])
+        def sync(instance):
+            instance.factory.handler = self.handler
+            return instance
+        host = nodeName.split("@", 1)[1]
+        if not host in self.oneShotEpmds:
+            self.oneShotEpmds[host] = self.oneShotPortMapperClass(
+                self.nodeName, self.cookie, host)
+        oneShotEpmd = self.oneShotEpmds[host]
+        return oneShotEpmd.connectToNode(nodeName).addCallback(sync)
+
+
+    def register(self, name):
+        """
+        Register this process with name C{name}.
+        """
+        self.handler._namedProcesses[name] = self._receivedData
+
+
+    def ping(self, nodeName):
+        """
+        Ping node C{nodeName}.
+        """
+        def doPing(instance):
+            return self.handler._pingWithPid(instance, self.pid)
+        return self._getNodeConnection(nodeName).addCallback(doPing)
+
+
+    def callRemote(self, nodeName, module, func, *args):
+        """
+        RPC call against node C{nodeName}.
+        """
+        def doCallRemote(instance):
+            return self.handler._callRemoteWithPid(
+                instance, self.pid, module, func, *args)
+        return self._getNodeConnection(nodeName).addCallback(doCallRemote)
+
+
+    def whereis(self, nodeName, process):
+        """
+        Return the pid of a process on a node.
+        """
+        def check(result):
+            if isinstance(result, Atom) and result.text == "undefined":
+                raise ValueError("Process not found")
+            elif isinstance(result, Pid):
+                return result
+            else:
+                raise ValueError("Unexpected result", result)
+        return self.callRemote(nodeName, "erlang", "whereis", Atom(process)
+            ).addCallback(check)
+
+
+    def link(self, pid):
+        """
+        Create a link with process C{pid}.
+        """
+        def doLink(instance):
+            self.pid.link(instance, pid)
+            self.handler.sendLink(instance, self.pid, pid)
+        return self._getNodeConnection(pid.nodeName.text).addCallback(doLink)
+
+
+    def unlink(self, pid):
+        """
+        Remove a link with process C{pid}.
+        """
+        def doUnlink(instance):
+            self.pid.unlink(instance, pid)
+            self.handler.sendUnlink(instance, self.pid, pid)
+        return self._getNodeConnection(pid.nodeName.text
+            ).addCallback(doUnlink)
+
+
+    def monitor(self, pid):
+        """
+        Monitor process C{pid}.
+
+        @return: a L{Reference} of the monitoring link.
+        """
+        def doMonitor(instance):
+            return self.handler.sendMonitor(instance, self.pid, pid)
+        return self._getNodeConnection(pid.nodeName.text
+            ).addCallback(doMonitor)
+
+
+    def demonitor(self, pid, ref):
+        """
+        Demonitor process C{pid}.
+        """
+        def doDemonitor(instance):
+            return self.handler.sendDemonitor(instance, self, pid, ref)
+        return self._getNodeConnection(pid.nodeName.text
+            ).addCallback(doDemonitor)
+
+
+    def send(self, pid, msg):
+        """
+        Directy send data to process C{pid}.
+        """
+        def doSend(instance):
+            return self.handler.send(instance, pid, msg)
+        return self._getNodeConnection(pid.nodeName.text).addCallback(doSend)
+
+
+    def namedSend(self, nodeName, processName, msg):
+        """
+        Send data to process named C{processName} on node C{nodeName}.
+        """
+        def doSend(instance):
+            return self.handler.namedSend(
+                instance, self.pid, Atom(processName), msg)
+        return self._getNodeConnection(nodeName).addCallback(doSend)
+
+
+    def _receivedData(self, pid, msg):
+        """
+        Callback called when a message has been send to this pid.
+        """
+        if self._receiveDeferred is not None:
+            if self._cancelReceiveID is not None:
+                self._cancelReceiveID.cancel()
+                self._cancelReceiveID = None
+            d, self._receiveDeferred = self._receiveDeferred, None
+            d.callback(msg)
+        else:
+            self._pendingReceivedData.append(msg)
+
+
+    def _cancelReceive(self):
+        """
+        Cancel a receive with a specified timeout.
+
+        @see: C{receive}
+        """
+        self._cancelReceiveID = None
+        d, self._receiveDeferred = self._receiveDeferred, None
+        d.errback(TimeoutError())
+
+
+    def receive(self, timeout=None):
+        """
+        Wait for received data on this process, possibly specifying a timeout.
+
+        @param timeout: timeout in seconds to wait for data.
+        @type timeout: C{int} or C{NoneType}
+
+        @return: a L{Deferred} that will fire received data.
+        """
+        if self._pendingReceivedData:
+            return succeed(self._pendingReceivedData.pop(0))
+        elif self._receiveDeferred is None:
+            self._receiveDeferred = Deferred()
+            if timeout is not None:
+                self._cancelReceiveID = self.callLater(
+                    timeout, self._cancelReceive)
+            return self._receiveDeferred
+        else:
+            raise RuntimeError("Pending receive")
+
+
+    def exit(self, reason):
+        """
+        Exit this process.
+        """
+        for proto, pid in self.pid._links:
+            self.handler.sendLinkExit(proto, self, pid, reason)
+        for proto, pid, ref in self.pid._remoteMonitors:
+            self.handler.sendMonitorExit(proto, self, pid, ref, reason)
+        self.pid.exit(reason)
+        if self._receiveDeferred is not None:
+            d, self._receiveDeferred = self._receiveDeferred, None
+            d.errback(ProcessExited(reason))
 
 
 
