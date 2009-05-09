@@ -12,7 +12,6 @@ from twisted.internet.protocol import Protocol, ClientFactory
 from twisted.internet.defer import Deferred, succeed
 from twisted.python import log
 from twisted.application.service import Service
-from twisted.application.internet import TCPClient, TCPServer
 
 from twotp.parser import theParser
 from twotp.packer import thePacker
@@ -460,20 +459,11 @@ class PersistentPortMapperService(Service):
     """
 
     def __init__(self, methodsHolder, nodeName, cookie):
-        self.methodsHolder = methodsHolder
-        self.nodeName = nodeName
-        self.cookie = cookie
+        from twotp.node import Process
+        self.process = Process(nodeName, cookie)
+        for module, instance in methodsHolder.items():
+            self.process.registerModule(module, instance)
 
 
     def startService(self):
-        Service.startService(self)
-        epmd = PersistentPortMapperFactory(self.nodeName, self.cookie)
-        epmd._connectDeferred = Deferred()
-        nodeFactory = epmd.nodeFactoryClass(
-            self.nodeName, self.cookie, epmd._connectDeferred)
-        server = TCPServer(0, nodeFactory)
-        server.startService()
-        epmd.nodePortNumber = server._port.getHost().port
-        client = TCPClient(epmd.host, epmd.EPMD_PORT, epmd)
-        client.startService()
-        return epmd._connectDeferred
+        return self.process.listen()
