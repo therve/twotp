@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
+# Copyright (c) 2007-2009 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
 """
@@ -15,13 +15,13 @@ gtk2reactor.install()
 
 from twisted.internet import reactor
 
-from twotp import OneShotPortMapperFactory, readCookie, buildNodeName, Atom
+from twotp import Process, readCookie, buildNodeName, Atom
 
 
 
 class MnesiaManager(object):
-    def __init__(self, epmd):
-        self.epmd = epmd
+    def __init__(self, process):
+        self.process = process
         self.tables = []
 
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -66,7 +66,7 @@ class MnesiaManager(object):
         self.vbox.show()
         self.window.show()
 
-        self.epmd.connectToNode("twisted_mnesia").addCallback(self.gotConnection)
+        self.gotConnection()
 
 
     def setup_menu(self):
@@ -95,9 +95,9 @@ class MnesiaManager(object):
 
 
     def list_table(self, table):
-        d = self.proto.factory.callRemote(self.proto, "mnesia", "table_info", table,
+        d = self.process.callRemote("twisted_mnesia", "mnesia", "table_info", table,
                 Atom("all"))
-      
+
         def cb(result):
             self.liststore.clear()
             for name, value in result:
@@ -135,7 +135,7 @@ class MnesiaManager(object):
             self.list_tables_menu.append(table_item)
             table_item.connect_object("activate", self.list_table, table)
             table_item.show()
-        
+
         return ", ".join([t.text for t in tables])
 
 
@@ -147,8 +147,7 @@ class MnesiaManager(object):
         return ", ".join(["%s at %s" % (p.nodeId, p.nodeName.text) for p in pids])
 
 
-    def gotConnection(self, proto):
-        self.proto = proto
+    def gotConnection(self):
         def cb(result):
             for name, value in result:
                 if isinstance(value, Atom):
@@ -159,16 +158,16 @@ class MnesiaManager(object):
                         self.liststore.append((name.text, meth(value)))
                     else:
                         self.liststore.append((name.text, str(value)))
-        return proto.factory.callRemote(proto, "mnesia", "system_info", 
-                Atom("all")).addCallback(cb)
+        return self.process.callRemote("twisted_mnesia", "mnesia",
+                "system_info", Atom("all")).addCallback(cb)
 
 
 
 def main():
     cookie = readCookie()
     nodeName = buildNodeName('nodename')
-    epmd = OneShotPortMapperFactory(nodeName, cookie)
-    manager = MnesiaManager(epmd)
+    process = Process(nodeName, cookie)
+    manager = MnesiaManager(process)
 
 
 if __name__ == "__main__":

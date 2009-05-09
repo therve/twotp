@@ -1,5 +1,5 @@
 # -*- test-case-name: twotp.test.test_node -*-
-# Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
+# Copyright (c) 2007-2009 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
 """
@@ -455,7 +455,7 @@ class NodeProtocol(Protocol):
             self._tickTimerID = None
             self.send("")
         self._tickTimerID = self.callLater(
-                self.factory.netTickTime * 0.125, self._tickTimer)
+            self.factory.netTickTime * 0.125, self._tickTimer)
 
 
     def send_handshake(self, data):
@@ -920,7 +920,7 @@ class RexProcess(ProcessBase):
                                   "undefined function %r" % (func,)))))
             else:
                 log.msg("Remote call to method %r" % (func,))
-                d = maybeDeferred(proxy, proto, *args)
+                d = maybeDeferred(proxy, *args)
                 d.addCallback(self._forwardResponse, proto, toPid, ref)
                 d.addErrback(self._forwardError, proto, toPid, ref)
         else:

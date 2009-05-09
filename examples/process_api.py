@@ -1,35 +1,34 @@
+#!/usr/bin/env python
+# Copyright (c) 2007-2009 Thomas Herve <therve@free.fr>.
+# See LICENSE for details.
+
+"""
+Example running erlang node.
+"""
+
 import sys
 
 from twisted.python import log
 from twisted.internet import reactor
 
-from twotp import Process, readCookie, buildNodeName, Atom
+from twotp import Process, readCookie, buildNodeName
 
 
 
 def testPing(process):
     def cb(resp):
         print "Got response", resp
-        process.register("bar")
-        return process.receive().addCallback(cb).addErrback(eb)
     def eb(error):
         print "Got error", error
     return process.ping("erlang").addCallback(cb).addErrback(eb)
-    #return process.callRemote("erlang", "file", "get_cwa").addCallback(cb).addErrback(eb)
 
 
 def testReceive(process):
-    def cb2(resp):
-        print "Got response", resp
     def cb(resp):
         print "Got response", resp
-        #return process.receive().addCallback(cb).addErrback(eb)
-        return process.ping("erlang").addCallback(cb2).addErrback(eb)
     def eb(error):
         print "Got error", error
-    #return process.whereis("erlang", "foo").addCallback(cb).addErrback(eb)
-    #return process.namedSend("erlang", "foo", 3).addCallback(cb).addErrback(eb)
-    process.register("bar")
+    process.register("main")
     return process.receive().addCallback(cb).addErrback(eb)
 
 
@@ -38,20 +37,29 @@ class RemoteCalls(object):
     def __init__(self, process):
         self.process = process
 
-    def remote_get_pid(self, proto):
+    def remote_get_pid(self):
         return self.process.pid
 
+    def remote_get_cwd(self, *args):
+        from twisted.python import filepath
+        return filepath.FilePath(".").path
 
-def main(nodeName):
+    def remote_echo(self, *args):
+        return args[0]
+
+
+def main(nodeName, server=False):
     cookie = readCookie()
     nodeName = buildNodeName(nodeName)
     process = Process(nodeName, cookie)
-    process.registerModule("twisted", RemoteCalls(process))
-    #process.listen().addCallback(lambda x: testReceive(process))
-    testPing(process)
+    process.registerModule("api", RemoteCalls(process))
+    if server:
+        process.listen().addCallback(lambda x: testReceive(process))
+    else:
+        testPing(process)
     reactor.run()
 
 
 if __name__ == "__main__":
     log.startLogging(sys.stdout)
-    main(sys.argv[1])
+    main(sys.argv[1], sys.argv[2] == "server")
