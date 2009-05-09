@@ -8,7 +8,7 @@ from distutils.core import setup
 def main():
     setup(
         name="twotp",
-        version="0.5",
+        version="0.6",
         description=("Twotp is an implementation of the Erlang node protocol "
                      "written in Python, using the Twisted networking engine"),
         author="Thomas Herve",
