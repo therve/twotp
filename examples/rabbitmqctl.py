@@ -1,33 +1,29 @@
+# Copyright (c) 2007-2009 Thomas Herve <therve@free.fr>.
+# See LICENSE for details.
+
 """
 Example emulating rabbitmqctl, just calling list_vhosts for now.
 """
 
-import sys
-
-from twisted.python import log
 from twisted.internet import reactor
 
-from twotp import OneShotPortMapperFactory, readCookie, buildNodeName
+from twotp import Process, readCookie, buildNodeName
 
 
-
-def testListVhost(epmdFactory):
-    def cb(inst):
-        return inst.factory.callRemote(inst, "rabbit_access_control",
-        "list_vhosts").addCallback(cb3)
-    def cb3(resp):
-        print "Got response", resp
+def testListVhost(process):
+    def cb(resp):
+        print resp
+        reactor.stop()
     def eb(error):
         print "Got error", error
-    epmdFactory.connectToNode("rabbit").addCallback(cb).addErrback(eb)
-
+        reactor.stop()
+    process.callRemote("rabbit", "rabbit_access_control", "list_vhosts"
+        ).addCallback(cb).addErrback(eb)
 
 
 if __name__ == "__main__":
-    log.startLogging(sys.stdout)
     cookie = readCookie()
     nodeName = buildNodeName("twotp-rabbit")
-    epmd = OneShotPortMapperFactory(nodeName, cookie)
-    reactor.callWhenRunning(testListVhost, epmd)
+    process = Process(nodeName, cookie)
+    reactor.callWhenRunning(testListVhost, process)
     reactor.run()
-

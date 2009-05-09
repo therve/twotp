@@ -1,4 +1,4 @@
-# Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
+# Copyright (c) 2007-2009 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
 """
@@ -238,8 +238,8 @@ class DummyPort(object):
         """
         Return a fake host.
         """
-        return address.IPv4Address('TCP',
-                *(('127.0.0.1', self.portNumber) + ('INET',)))
+        return address.IPv4Address("TCP",
+                *(("127.0.0.1", self.portNumber) + ("INET",)))
 
 
 
@@ -295,7 +295,7 @@ class PersistentPortMapperFactoryTestCase(TestCase):
         self.assertEquals(self.factory.listen[0][0], 0)
         self.assertIsInstance(self.factory.listen[0][1],
                               self.factory.nodeFactoryClass)
-        self.assertEquals(self.factory.connect[0][:2], ('127.0.0.1', 4369))
+        self.assertEquals(self.factory.connect[0][:2], ("127.0.0.1", 4369))
         self.assertIdentical(self.factory.connect[0][2], self.factory)
         self.factory._connectDeferred.callback(2)
         def cb(ign):
@@ -309,7 +309,7 @@ class PersistentPortMapperFactoryTestCase(TestCase):
         """
         self.factory.nodePortNumber = 1234
         transport = StringTransportWithDisconnection()
-        proto = self.factory.buildProtocol(('127.0.01', 4369))
+        proto = self.factory.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
         self.assertEquals(transport.value(),
@@ -322,12 +322,12 @@ class TestableOSPMF(OneShotPortMapperFactory):
     A L{OneShotPortMapperFactory} without socket operations.
     """
 
-    def __init__(self, nodeName, cookie):
+    def __init__(self, nodeName, cookie, host="127.0.0.1"):
         """
         Initialization: forward call and create attributes to save future
         calls.
         """
-        OneShotPortMapperFactory.__init__(self, nodeName, cookie)
+        OneShotPortMapperFactory.__init__(self, nodeName, cookie, host=host)
         self.connect = []
 
 
@@ -359,12 +359,12 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         """
         d = self.factory.portPlease2Request("egg@spam")
         transport = StringTransportWithDisconnection()
-        proto = self.factory.buildProtocol(('127.0.01', 4369))
+        proto = self.factory.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
         self.assertEquals(transport.value(), "\x00\tzegg@spam")
         self.assertEquals(self.factory.connect,
-            [('127.0.0.1', 4369, self.factory)])
+            [("127.0.0.1", 4369, self.factory)])
         proto.dataReceived(
                 "w\x00\x00\x09M\x01\x00\x05\x00\x05\x00\x03bar\x00")
         return d.addCallback(self.assertEquals,
@@ -378,22 +378,22 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         to the erlang node.
         """
         clientFactory = DummyClientFactory()
-        self.factory.nodeFactoryClass = lambda a, b, c, d: clientFactory
+        self.factory.nodeFactoryClass = lambda a, b, c: clientFactory
         d = self.factory.connectToNode("egg@spam")
         transport = StringTransportWithDisconnection()
-        proto = self.factory.buildProtocol(('127.0.01', 4369))
+        proto = self.factory.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
-        self.assertEquals(transport.value(), "\x00\tzegg@spam")
+        self.assertEquals(transport.value(), "\x00\x04zegg")
         self.assertEquals(self.factory.connect,
-            [('127.0.0.1', 4369, self.factory)])
+            [("127.0.0.1", 4369, self.factory)])
         proto.dataReceived(
-                "w\x00\x00\x09M\x01\x00\x05\x00\x05\x00\x03bar\x00")
+            "w\x00\x00\x09M\x01\x00\x05\x00\x05\x00\x03bar\x00")
         clientProto = object()
         clientFactory._connectDeferred.callback(clientProto)
         self.assertEquals(self.factory.connect,
-            [('127.0.0.1', 4369, self.factory),
-             ('127.0.0.1', 9, clientFactory)])
+            [("127.0.0.1", 4369, self.factory),
+             ("127.0.0.1", 9, clientFactory)])
         return d.addCallback(self.assertIdentical, clientProto)
 
 
@@ -403,7 +403,7 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         L{OneShotPortMapperFactory.connectToNode} should directly return it.
         """
         clientProto = object()
-        self.factory._nodeCache["egg@spam"] = clientProto
+        self.factory._nodeCache["egg"] = clientProto
         d = self.factory.connectToNode("egg@spam")
         return d.addCallback(self.assertIdentical, clientProto)
 
@@ -429,14 +429,14 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         """
         d = self.factory.names()
         transport = StringTransportWithDisconnection()
-        proto = self.factory.buildProtocol(('127.0.01', 4369))
+        proto = self.factory.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
         self.assertEquals(transport.value(), "\x00\x01n")
         proto.dataReceived("\x00\x00\x00\x01")
         proto.dataReceived("name %s at port %s\n" % ("foo", 1234))
         transport.loseConnection()
-        return d.addCallback(self.assertEquals, [('foo', 1234)])
+        return d.addCallback(self.assertEquals, [("foo", 1234)])
 
 
     def test_dump(self):
@@ -446,7 +446,7 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         """
         d = self.factory.dump()
         transport = StringTransportWithDisconnection()
-        proto = self.factory.buildProtocol(('127.0.01', 4369))
+        proto = self.factory.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
         self.assertEquals(transport.value(), "\x00\x01d")
@@ -455,7 +455,7 @@ class OneShotPortMapperFactoryTestCase(TestCase):
             "active name    <%s> at port %s, fd = %s\n\x00" % ("foo", 1234, 3))
         transport.loseConnection()
         return d.addCallback(self.assertEquals,
-                {'active': [('foo', 1234, 3)], 'old': []})
+                {"active": [("foo", 1234, 3)], "old": []})
 
 
     def test_kill(self):
@@ -465,7 +465,7 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         """
         d = self.factory.kill()
         transport = StringTransportWithDisconnection()
-        proto = self.factory.buildProtocol(('127.0.01', 4369))
+        proto = self.factory.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
         self.assertEquals(transport.value(), "\x00\x01k")

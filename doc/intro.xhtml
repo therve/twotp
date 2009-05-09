@@ -34,79 +34,66 @@
 
     <p>
         Then, instantiate the class
-        <code class="API" base="twotp.epmd">OneShotPortMapperFactory</code>
-        with the infos, and call connectionToNode on it. This method will:
+        <code class="API" base="twotp.node">Process</code>
+        with the infos, and call callRemote on it. This method will:
         <ul>
             <li>create a connection with the EPMD</li>
             <li>ask for the port info of the node</li>
             <li>connect to the node</li>
             <li>return the connected node client protocol</li>
+            <li>make a RPC call on the connected node</li>
+            <li>return the result to you</li>
         </ul>
-        Once you get back the protocol instance, you can use the callRemote
-        method on its factory to make calls to the node.
-    </p>
-
-    <p>
-        If you have to make several calls to a node, don't bother keep a
-        reference to it: OneShotPortMapperFactory will keep a cache of connected
-        instances for you.
     </p>
 
     <pre class="python">
 from twisted.internet import reactor
-from twotp import OneShotPortMapperFactory, readCookie, buildNodeName
+from twotp import Process, readCookie, buildNodeName
 
-def gotConnection(inst):
-    return inst.factory.callRemote(inst, "file", "get_cwd"
-        ).addCallback(gotResult)
 
 def gotResult(resp):
     print "Got response", resp
     reactor.stop()
 
+
 def eb(error):
     print "Got error", error
     reactor.stop()
 
+
 cookie = readCookie()
 nodeName = buildNodeName('nodename')
-epmd = OneShotPortMapperFactory(nodeName, cookie)
-epmd.connectToNode("foo").addCallback(gotConnection).addErrback(eb)
+process = Process(nodeName, cookie)
+process.callRemote("foo", "file", "get_cwd").addCallback(gotResult).addErrback(eb)
 reactor.run()
     </pre>
 
     <h2>Instantiating a node</h2>
 
     <p>
-        The process for creating a node is relatively straightforward. First
-        you  create a node server factory, and make it listen on an arbitrary
-        port. Then you create client connection to the EPMD, giving the server
-        port as argument. This process is simplified by the method publish
-        of the EPMD factory.
+        The process for creating a node is really straightforward: you just
+        have to call the <code>listen</code> of your <code>Process</code>.
+        What happens behind the scene is that first it creates a node server
+        factory, and makes it listen on an arbitrary port. Then it creates a
+        client connection to the EPMD, giving the server port as argument.
 
         The EPMD should be started outside Twisted. It is
         started automatically when you start an erlang application.
     </p>
 
     <pre class="python">
+import sys
+from twisted.python import log
 from twisted.internet import reactor
-from twotp import PersistentPortMapperFactory, readCookie, buildNodeName
+from twotp import Process, readCookie, buildNodeName
 
 cookie = readCookie()
 nodeName = buildNodeName('nodename')
-epmd = PersistentPortMapperFactory(nodeName, cookie)
-epmd.publish()
+log.startLogging(sys.stdout)
+process = Process(nodeName, cookie)
+process.listen()
 reactor.run()
     </pre>
-
-    <p>
-        Once you have the node name and the cookie (see above to understand
-        how), you create a
-        <code class="API" base="twotp.epmd">PersistentPortMapperFactory</code>
-        instance, and call publish on it: it will create the node, make it
-        listen on an arbitrary port, and connect to the EPMD to publish the
-        information.
-    </p>
 
     <p>
         Of course, for now it does nothing useful, so we now see how to
@@ -117,37 +104,125 @@ reactor.run()
     <h2>Receiving method calls from an Erlang node</h2>
 
     <p>
-        The key method here is the method publish you've seen above: this method
-        takes a hash table of name/object. The key for this table is the
-        module used when making a call from Erlang. The value is an instance
-        of a class with methods prefixed by <code>remote_</code>.
+        The key method here is the method <code>registerModule</code> of the
+        <code>Process</code> class: this method takes a name and an object. The
+        name is the name of the module used when making a call from Erlang. The
+        object is an instance of a class with methods prefixed by
+        <code>remote_</code>.
     </p>
 
     <pre class="python">
-class Proxy(object):
-    def remote_bar(self, arg):
-        return arg * 2
-
+import sys
+from twisted.python import log
 from twisted.internet import reactor
-from twotp import PersistentPortMapperFactory, readCookie, buildNodeName
+from twotp import Process, readCookie, buildNodeName
+
+class Proxy(object):
+    def remote_double(self, arg):
+        return arg * 2
 
 cookie = readCookie()
 nodeName = buildNodeName('nodename')
-epmd = PersistentPortMapperFactory(nodeName, cookie)
-epmd.publish(foo=Proxy())
+log.startLogging(sys.stdout)
+process = Process(nodeName, cookie)
+process.registerModule("math", Proxy())
+process.listen()
 reactor.run()
     </pre>
 
     <p>
         The script above define a <code>Proxy</code> with a
-        <code>remote_bar</code> method. We can publish with the keyword
-        foo, which creates a module named foo with the method bar. We can now
-        call this method in an Erlang console:
+        <code>remote_double</code> method. We can publish with the keyword
+        math, which creates a module named math with the method double. We can
+        now call this method in an Erlang console:
     </p>
 
     <pre>
-(erlang@node)1> rpc:call('nodename@node', foo, bar, [3]).
+(erlang@node)1> rpc:call('nodename@node', math, double, [3]).
 {ok,6}
+    </pre>
+
+    <h2>Linking and monitoring an Erlang process</h2>
+
+    <p>
+        To get exit information with an Erlang process, you can create a link
+        or a monitor operation with it. A link is symmetrical, which means that
+        the remote process can be notified of the exit status of the Twisted
+        process as well. Let's try monitoring first.
+    </p>
+
+    <p>
+        Open an Erlang shell, create and register a simple process that can
+        fail.
+    </p>
+
+    <pre>
+(erlang@node)1&gt; F = fun() -&gt; receive X -&gt; list_to_atom(X) end end.
+#Funi&lt;erl_eval.20.67289768&gt;
+(erlang@node)2&gt; Pid1 = spawn(F).
+&lt;0.42.0&gt;
+(erlang@node)3&gt; register(pid1, Pid1).
+true
+    </pre>
+
+    <p>
+        It registers a process under the name <code>pid1</code>, which can
+        easily fails. Now let's start a twisted process monitoring that pid:
+    </p>
+
+    <pre class="python">
+import sys
+from twisted.python import log
+from twisted.internet import reactor
+from twotp import Process, readCookie, buildNodeName
+
+def gotWhereis(pid):
+    return process.monitor(pid).addCallback(gotRef)
+
+def gotRef(ref):
+    process.addMonitorHandler(ref, gotExit)
+
+def gotExit(reason):
+    print "Remote process exited with:", reason
+
+cookie = readCookie()
+nodeName = buildNodeName('nodename')
+log.startLogging(sys.stdout)
+process = Process(nodeName, cookie)
+process.whereis('erlang', 'pid1').addCallback(gotWhereis)
+reactor.run()
+    </pre>
+
+    <p>
+        There are several interesting methods here. First, <code>whereis</code>
+        allows you to get a Pid object from a name, if this name is registered
+        on the other node. Then <code>monitor</code> creates a monitor link,
+        and returns the monitor reference in its callback. You can then call
+        <code>addMonitorHandler</code> as many times you want with this
+        reference: the specified callbacks will be called with the exit
+        notification happens.
+    </p>
+
+    <p>
+        Return to the Erlang shell, and create an error on the process:
+    </p>
+
+    <pre>
+(erlang@node)4&gt; pid1 ! 1.
+
+=ERROR REPORT==== 9-May-2009::19:18:29 ===
+Error in process &lt;0.42.0&gt; on node 'erlang@node' with exit value: {badarg,[{erlang,list_to_atom,[1]}]}
+
+1
+    </pre>
+
+    <p>
+        If everything went fine, you should have the following log in your
+        Twisted application:
+    </p>
+
+    <pre>
+2009-05-09 19:18:29+0200 [NodeClientProtocol,client] Remote process exited with: (&lt;Atom at 0x8b9840c, text 'badarg'&gt;, [(&lt;Atom at 0x8b983cc, text 'erlang'&gt;, &lt;Atom at 0x8b9844c, text 'list_to_atom'&gt;, [1])])
     </pre>
 
     <h2>An example: using a Mnesia database</h2>
@@ -176,24 +251,24 @@ reactor.run()
 -export([init/0, insert_user/2, get_user/1]).
 -include("twisted.hrl").
 
-init() ->
+init() -&gt;
     mnesia:create_table(user,
                         [{attributes, record_info(fields, user)}]).
 
-insert_user(UserName, UserId) ->
+insert_user(UserName, UserId) -&gt;
     User = #user{id=UserId, name=UserName},
-    Fun = fun() ->
+    Fun = fun() -&gt;
             mnesia:write(User)
         end,
     mnesia:transaction(Fun).
 
-get_user(UserId) ->
-    Fun = fun() ->
+get_user(UserId) -&gt;
+    Fun = fun() -&gt;
             [User] = mnesia:read(user, UserId, read),
             User
         end,
     case mnesia:transaction(Fun) of
-        {atomic, User} ->
+        {atomic, User} -&gt;
             User
     end.
     </pre>
@@ -206,15 +281,15 @@ get_user(UserId) ->
     <pre class="shell">
 $ erl -sname twisted_mnesia
 
-(twisted_mnesia@localhost)1> c(twisted).
+(twisted_mnesia@localhost)1&gt; c(twisted).
 {ok,twisted}
-(twisted_mnesia@localhost)2> mnesia:start().
+(twisted_mnesia@localhost)2&gt; mnesia:start().
 ok
-(twisted_mnesia@localhost)3> twisted:init().
+(twisted_mnesia@localhost)3&gt; twisted:init().
 {atomic,ok}
-(twisted_mnesia@localhost)4> twisted:insert_user(test1, 1).
+(twisted_mnesia@localhost)4&gt; twisted:insert_user(test1, 1).
 {atomic,ok}
-(twisted_mnesia@localhost)5> twisted:get_user(1).
+(twisted_mnesia@localhost)5&gt; twisted:get_user(1).
 {user,1,test1}
     </pre>
 
@@ -224,11 +299,7 @@ ok
 
     <pre class="python">
 from twisted.internet import reactor
-from twotp import OneShotPortMapperFactory, readCookie, buildNodeName
-
-def gotConnection(inst):
-    return inst.factory.callRemote(inst, "twisted", "get_user", 1
-        ).addCallback(gotResult)
+from twotp import Process, readCookie, buildNodeName
 
 def gotResult(resp):
     print "Got response", resp
@@ -240,8 +311,10 @@ def eb(error):
 
 cookie = readCookie()
 nodeName = buildNodeName('nodename')
-epmd = OneShotPortMapperFactory(nodeName, cookie)
-epmd.connectToNode("twisted_mnesia").addCallback(gotConnection).addErrback(eb)
+process = Process(nodeName, cookie)
+process.callRemote("twisted_mnesia", "twisted", "get_user", 1
+    ).addCallback(gotResult).addErrback(eb)
+
 reactor.run()
     </pre>
 

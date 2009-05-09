@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
+# Copyright (c) 2007-2009 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
 from distutils.core import setup

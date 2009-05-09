@@ -1,5 +1,5 @@
 # -*- test-case-name: twotp.test.test_server -*-
-# Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
+# Copyright (c) 2007-2009 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
 """
@@ -9,6 +9,7 @@ Server node protocol.
 import struct
 
 from twisted.internet.protocol import ServerFactory
+from twisted.internet.defer import Deferred
 from twisted.python import log
 
 from twotp.node import NodeProtocol, NodeBaseFactory, InvalidIdentifier, InvalidDigest
@@ -20,6 +21,8 @@ class NodeServerProtocol(NodeProtocol):
     @ivar state: 'handshake', 'challenge', 'connected'.
     @type state: C{str}
     """
+    _connectDeferred = None
+
 
     def connectionMade(self):
         """
@@ -34,14 +37,15 @@ class NodeServerProtocol(NodeProtocol):
         """
         if len(data) < 2:
             return data
-        packetLen = self.factory._parser.parseShort(data[0:2])
+        parser = self.factory.handler._parser
+        packetLen = parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
         packetData = data[2:packetLen+2]
         if packetData[0] != "n":
             raise InvalidIdentifier("Got %r instead of 'n'" % (packetData[0],))
-        self.peerVersion = self.factory._parser.parseShort(packetData[1:3])
-        self.peerFlags = self.factory._parser.parseInt(packetData[3:7])
+        self.peerVersion = parser.parseShort(packetData[1:3])
+        self.peerFlags = parser.parseInt(packetData[3:7])
         self.peerName = packetData[7:]
         self.send("sok")
         self.sendChallenge()
@@ -55,19 +59,23 @@ class NodeServerProtocol(NodeProtocol):
         """
         if len(data) < 2:
             return data
-        packetLen = self.factory._parser.parseShort(data[0:2])
+        packetLen = self.factory.handler._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
         packetData = data[2:packetLen+2]
         if packetData[0] != "r":
             raise InvalidIdentifier("Got %r instead of 'r'" % (packetData[0],))
-        peerChallenge = self.factory._parser.parseInt(packetData[1:5])
+        peerChallenge = self.factory.handler._parser.parseInt(packetData[1:5])
         peerDigest = packetData[5:]
-        ownDigest = self.generateDigest(self.challenge, self.factory.cookie)
+        ownDigest = self.generateDigest(
+            self.challenge, self.factory.handler.cookie)
         if peerDigest != ownDigest:
             raise InvalidDigest("Digest doesn't match, node disallowed")
         self.sendAck(peerChallenge)
         self.state = "connected"
+        if self._connectDeferred is not None:
+            d, self._connectDeferred = self._connectDeferred, None
+            d.callback(self)
         self.startTimer()
         return data[packetLen + 2:]
 
@@ -77,10 +85,10 @@ class NodeServerProtocol(NodeProtocol):
         Send initial challenge.
         """
         self.challenge = self.generateChallenge()
+        handler = self.factory.handler
         flags = struct.pack(
-            "!HII", self.factory.distrVersion, self.factory.distrFlags,
-                    self.challenge)
-        msg = "n%s%s" % (flags, self.factory.nodeName)
+            "!HII", handler.distrVersion, handler.distrFlags, self.challenge)
+        msg = "n%s%s" % (flags, handler.nodeName)
         self.send(msg)
 
 
@@ -88,7 +96,7 @@ class NodeServerProtocol(NodeProtocol):
         """
         Send final ack after challenge check.
         """
-        msg = "a" + self.generateDigest(challenge, self.factory.cookie)
+        msg = "a" + self.generateDigest(challenge, self.factory.handler.cookie)
         self.send(msg)
 
 
@@ -99,12 +107,13 @@ class NodeServerFactory(NodeBaseFactory, ServerFactory):
     """
     protocol = NodeServerProtocol
 
-    def __init__(self, methodsHolder, nodeName, cookie, epmdConnectDeferred):
+    def __init__(self, nodeName, cookie, epmdConnectDeferred):
         """
         Initialize the server factory.
         """
-        NodeBaseFactory.__init__(self, methodsHolder, nodeName, cookie)
+        NodeBaseFactory.__init__(self, nodeName, cookie)
         epmdConnectDeferred.addCallback(self._epmdConnected)
+        self._nodeCache = {}
 
 
     def _epmdConnected(self, creation):
@@ -112,3 +121,22 @@ class NodeServerFactory(NodeBaseFactory, ServerFactory):
         Callback fired when connected to the EPMD.
         """
         self.creation = creation
+        return self
+
+
+    def _putInCache(self, instance):
+        """
+        Store the connection in a cache for being used later on.
+        """
+        self._nodeCache[instance.peerName] = instance
+
+
+    def buildProtocol(self, addr):
+        """
+        Build the L{NodeServerProtocol} instance and add a callback when the
+        connection has been successfully established to the other node.
+        """
+        p = ServerFactory.buildProtocol(self, addr)
+        p._connectDeferred = Deferred()
+        p._connectDeferred.addCallback(self._putInCache)
+        return p

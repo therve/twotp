@@ -1,5 +1,5 @@
 # -*- test-case-name: twotp.test.test_epmd -*-
-# Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
+# Copyright (c) 2007-2009 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
 """
@@ -12,7 +12,6 @@ from twisted.internet.protocol import Protocol, ClientFactory
 from twisted.internet.defer import Deferred, succeed
 from twisted.python import log
 from twisted.application.service import Service
-from twisted.application.internet import TCPClient, TCPServer
 
 from twotp.parser import theParser
 from twotp.packer import thePacker
@@ -304,13 +303,13 @@ class PersistentPortMapperFactory(ClientFactory):
         return reactor.connectTCP(host, port, factory)
 
 
-    def publish(self, **methodsHolder):
+    def publish(self):
         """
-        Publish a node with given methods to the EPMD.
+        Publish a node to the EPMD.
         """
         self._connectDeferred = Deferred()
-        nodeFactory = self.nodeFactoryClass(methodsHolder, self.nodeName,
-                self.cookie, self._connectDeferred)
+        nodeFactory = self.nodeFactoryClass(
+            self.nodeName, self.cookie, self._connectDeferred)
         nodePort = self.listenTCP(0, nodeFactory)
         self.nodePortNumber = nodePort.getHost().port
         self.connectTCP(self.host, self.EPMD_PORT, self)
@@ -363,8 +362,8 @@ class OneShotPortMapperFactory(ClientFactory):
         """
         Called when a connection is lost with a node.
         """
-        if factory.nodeName in self._nodeCache:
-            del self._nodeCache[factory.nodeName]
+        if factory.handler.nodeName in self._nodeCache:
+            del self._nodeCache[factory.handler.nodeName]
 
 
     def buildProtocol(self, addr):
@@ -399,16 +398,18 @@ class OneShotPortMapperFactory(ClientFactory):
         d.errback(reason)
 
 
-    def connectToNode(self, nodeName, **methodsHolder):
+    def connectToNode(self, nodeName):
         """
         Get a connection to an erlang node named C{nodeName}.
         """
+        nodeName = nodeName.split("@")[0]
+
         if nodeName in self._nodeCache:
             return succeed(self._nodeCache[nodeName])
 
         def cbPort(node):
-            factory = self.nodeFactoryClass(methodsHolder, self.nodeName,
-                                            self.cookie, self.onConnectionLost)
+            factory = self.nodeFactoryClass(
+                self.nodeName, self.cookie, self.onConnectionLost)
             d = factory._connectDeferred
             self.connectTCP(self.host, node.portNumber, factory)
             d.addCallback(cbConnect)
@@ -458,20 +459,11 @@ class PersistentPortMapperService(Service):
     """
 
     def __init__(self, methodsHolder, nodeName, cookie):
-        self.methodsHolder = methodsHolder
-        self.nodeName = nodeName
-        self.cookie = cookie
+        from twotp.node import Process
+        self.process = Process(nodeName, cookie)
+        for module, instance in methodsHolder.items():
+            self.process.registerModule(module, instance)
 
 
     def startService(self):
-        Service.startService(self)
-        epmd = PersistentPortMapperFactory(self.nodeName, self.cookie)
-        epmd._connectDeferred = Deferred()
-        nodeFactory = epmd.nodeFactoryClass(self.methodsHolder, self.nodeName,
-                self.cookie, epmd._connectDeferred)
-        server = TCPServer(0, nodeFactory)
-        server.startService()
-        epmd.nodePortNumber = server._port.getHost().port
-        client = TCPClient(epmd.host, epmd.EPMD_PORT, epmd)
-        client.startService()
-        return epmd._connectDeferred
+        return self.process.listen()

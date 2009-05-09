@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """
 Example connecting to an ejabberd node to get notifications. Written by Fabio
 Forno from Bluendo, originally published here:
@@ -8,8 +9,7 @@ http://blog.bluendo.com/ff/ejabberd-hooks-with-twisted
 
 from twisted.internet import reactor, defer
 
-from twotp import PersistentPortMapperFactory, Atom
-from twotp import OneShotPortMapperFactory, readCookie, buildNodeName
+from twotp import Process, Atom, readCookie
 
 from pprint import pprint
 
@@ -36,37 +36,10 @@ def l2u(l):
 
 
 @defer.inlineCallbacks
-def register_hook(epmd):
-    # connect to the ejabberd node
-    inst = yield epmd.connectToNode("ejabberd")
+def register_hook(process):
 
-    #register hooks
-    #r = yield inst.factory.callRemote(
-    #        inst,
-    #        "ejabberd_hooks",
-    #        "add_dist",
-    #        Atom("user_available_hook"), # hook name
-    #        "olindo.bluendo.priv", # virtual host
-    #        Atom("uccaro@olindo.bluendo.priv"), # hook node
-    #        Atom("proxy"), # hook module
-    #        Atom("user_available"), # hook method
-    #        10
-    #)
-
-    #r = yield inst.factory.callRemote(
-    #        inst,
-    #        "ejabberd_hooks",
-    #        "add_dist",
-    #        Atom("set_presence_hook"), # hook name
-    #        "olindo.bluendo.priv", # virtual host
-    #        Atom("uccaro@olindo.bluendo.priv"), # hook node
-    #        Atom("proxy"), # hook module
-    #        Atom("set_presence"), # hook method
-    #        10
-    #)
-
-    r = yield inst.factory.callRemote(
-            inst,
+    r = yield process.callRemote(
+            "ejabberd",
             "ejabberd_hooks",
             "add_dist",
             Atom("user_receive_packet"), # hook name
@@ -77,8 +50,8 @@ def register_hook(epmd):
             10
     )
 
-    r = yield inst.factory.callRemote(
-            inst,
+    r = yield process.callRemote(
+            "ejabberd",
             "ejabberd_hooks",
             "add_dist",
             Atom("user_send_packet"), # hook name
@@ -94,8 +67,6 @@ class UserMonitor(object):
 
     def remote_user_available(self, jid):
         # do something interesting
-        #import pdb; pdb.set_trace()
-        print "aaa"
         print "user %s available"%(l2u(jid[1]))
         return Atom("ok")
 
@@ -113,14 +84,15 @@ class UserMonitor(object):
 
 
 if __name__ == "__main__":
-
     cookie = readCookie()
-    nodeName = buildNodeName("controller@olindo.bluendo.priv")
-    epmd_client = OneShotPortMapperFactory(nodeName, cookie, "olindo.bluendo.priv")
-    reactor.callWhenRunning(register_hook, epmd_client)
 
-    nodeName = buildNodeName("uccaro@olindo.bluendo.priv")
-    epmd = PersistentPortMapperFactory(nodeName, cookie, "olindo.bluendo.priv")
-    epmd.publish(proxy = UserMonitor())
+    nodeName = "controller@olindo.bluendo.priv"
+    process1 = Process(nodeName, cookie, "olindo.bluendo.priv")
+    reactor.callWhenRunning(register_hook, process1)
+
+    nodeName = "uccaro@olindo.bluendo.priv"
+    process2 = Process(nodeName, cookie, "olindo.bluendo.priv")
+    process2.registerModule("proxy", UserMonitor())
+    process2.listen()
 
     reactor.run()

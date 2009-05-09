@@ -1,5 +1,5 @@
 # -*- test-case-name: twotp.test.test_term -*-
-# Copyright (c) 2007-2008 Thomas Herve <therve@free.fr>.
+# Copyright (c) 2007-2009 Thomas Herve <therve@free.fr>.
 # See LICENSE for details.
 
 """
@@ -230,37 +230,19 @@ class Pid(Term):
                      self.creation))
 
 
-    def link(self, proto, pid, _received=False):
+    def link(self, proto, pid):
         """
         Link this process to another (remote) C{pid}.
         """
         self._links.add((proto, pid))
-        if not _received:
-            proto.factory.sendLink(proto, self, pid)
 
 
-    def unlink(self, proto, pid, _received=False):
+    def unlink(self, proto, pid):
         """
         Remove a previously created link to remove process C{pid}.
         """
         if (proto, pid) in self._links:
             self._links.remove((proto, pid))
-        if not _received:
-            proto.factory.sendUnlink(proto, self, pid)
-
-
-    def monitor(self, proto, pid):
-        """
-        Register a monitoring on remote process C{pid}.
-        """
-        return proto.factory.sendMonitor(proto, self, pid)
-
-
-    def demonitor(self, proto, pid, ref):
-        """
-        Unregister a monitoring on remote process C{pid}.
-        """
-        return proto.factory.sendDemonitor(proto, self, pid, ref)
 
 
     def _remoteMonitor(self, proto, pid, ref):
@@ -287,19 +269,8 @@ class Pid(Term):
         Exit this local process, propagating the exit signal to remote linked
         processes.
         """
-        for proto, pid in self._links:
-            proto.factory.sendLinkExit(proto, self, pid, reason)
         self._links.clear()
-        for proto, pid, ref in self._remoteMonitors:
-            proto.factory.sendMonitorExit(proto, self, pid, ref, reason)
         self._remoteMonitors.clear()
-
-
-    def addExitHandler(self, pid, handler):
-        """
-        Register a callback to be called when C{pid} exits.
-        """
-        self._handlers.setdefault(pid, []).append(handler)
 
 
     def _signalExit(self, pid, reason):
@@ -313,34 +284,12 @@ class Pid(Term):
                 self._links.remove((proto, linkedPid))
 
 
-    def addMonitorHandler(self, ref, handler):
-        """
-        Register a callback to be called when monitoring L{Reference} C{ref}
-        fires.
-        """
-        self._monitorHandlers.setdefault(ref, []).append(handler)
-
-
     def _signalMonitorExit(self, pid, ref, reason):
         """
         Signal remote exit of process C{pid} via monitor.
         """
         for handler in self._monitorHandlers.pop(ref, []):
             handler(reason)
-
-
-    def callRemote(self, proto, module, func, *args):
-        """
-        Call a method on the remote node.
-        """
-        return proto.factory._callRemoteWithPid(proto, self, module, func, *args)
-
-
-    def ping(self, proto):
-        """
-        Ping the remote node.
-        """
-        return proto.factory._pingWithPid(proto, self)
 
 
 
