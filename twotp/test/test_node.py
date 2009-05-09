@@ -680,6 +680,7 @@ class ProcessTestCase(TestCase):
         self.process.serverFactory = FakeServerFactory()
         factory = DummyFactory()
         proto = TestableNodeProtocol()
+        proto.state = "connected"
         transport = CloseNotifiedTransport()
         proto.factory = factory
         proto.makeConnection(transport)
@@ -690,15 +691,48 @@ class ProcessTestCase(TestCase):
         d = self.process.ping("egg@spam")
         self.assertEquals(
             transport.value(),
-            "\x00\x7fp\x83h\x04a\x06d\x00\x00gd\x00\x07foo@bar\x00\x00\x00"
-            "\x03\x00\x00\x00\x00\x00d\x00\nnet_kernel\x83h\x03d\x00\t"
+            "\x00\x00\x00\x7fp\x83h\x04a\x06d\x00\x00gd\x00\x07foo@bar\x00"
+            "\x00\x00\x03\x00\x00\x00\x00\x00d\x00\nnet_kernel\x83h\x03d\x00\t"
             "$gen_callh\x02gd\x00\x07foo@bar\x00\x00\x00\x03\x00\x00\x00\x00"
             "\x00r\x00\x03d\x00\x07foo@bar\x00\x00\x00\x00\x01\x00\x00\x00"
             "\x00\x00\x00\x00\x00h\x02d\x00\x07is_authd\x00\x07foo@bar")
         pid = list(set(self.process.handler._parser._pids) - pids)[0]
-        proto.state = "connected"
         ref = Reference(Atom("foo@bar"), 0, 0)
         yes = Atom("yes")
 
         self.process.handler.operation_send(proto, (Atom(""), pid), (ref, yes))
         return d.addCallback(self.assertEquals, "pong")
+
+
+    def test_callRemote(self):
+        """
+        Test L{Process.callRemote}.
+        """
+        class FakeServerFactory(object):
+            _nodeCache = None
+
+        self.process.serverFactory = FakeServerFactory()
+        factory = DummyFactory()
+        proto = TestableNodeProtocol()
+        proto.state = "connected"
+        transport = CloseNotifiedTransport()
+        proto.factory = factory
+        proto.makeConnection(transport)
+        transport.protocol = proto
+        self.process.serverFactory._nodeCache = {"egg@spam": proto}
+
+        pids = set(self.process.handler._parser._pids)
+        d = self.process.callRemote("egg@spam", "module1", "func1", "arg", 1)
+        self.assertEquals(
+            transport.value(),
+            "\x00\x00\x00jp\x83h\x04a\x06d\x00\x00gd\x00\x07foo@bar\x00\x00"
+            "\x00\x03\x00\x00\x00\x00\x00d\x00\x03rex\x83h\x02gd\x00\x07"
+            "foo@bar\x00\x00\x00\x03\x00\x00\x00\x00\x00h\x05d\x00\x04calld"
+            "\x00\x07module1d\x00\x05func1l\x00\x00\x00\x02k\x00\x03arga\x01"
+            "jd\x00\x04user")
+        pid = list(set(self.process.handler._parser._pids) - pids)[0]
+
+        self.process.handler.operation_send(
+            proto, (Atom(""), pid), (Atom("rex"), [2, "arg"]))
+
+        return d.addCallback(self.assertEquals, [2, "arg"])
