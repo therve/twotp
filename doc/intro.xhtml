@@ -34,79 +34,66 @@
 
     <p>
         Then, instantiate the class
-        <code class="API" base="twotp.epmd">OneShotPortMapperFactory</code>
-        with the infos, and call connectionToNode on it. This method will:
+        <code class="API" base="twotp.node">Process</code>
+        with the infos, and call callRemote on it. This method will:
         <ul>
             <li>create a connection with the EPMD</li>
             <li>ask for the port info of the node</li>
             <li>connect to the node</li>
             <li>return the connected node client protocol</li>
+            <li>make a RPC call on the connected node</li>
+            <li>return the result to you</li>
         </ul>
-        Once you get back the protocol instance, you can use the callRemote
-        method on its factory to make calls to the node.
-    </p>
-
-    <p>
-        If you have to make several calls to a node, don't bother keep a
-        reference to it: OneShotPortMapperFactory will keep a cache of connected
-        instances for you.
     </p>
 
     <pre class="python">
 from twisted.internet import reactor
-from twotp import OneShotPortMapperFactory, readCookie, buildNodeName
+from twotp import Process, readCookie, buildNodeName
 
-def gotConnection(inst):
-    return inst.factory.callRemote(inst, "file", "get_cwd"
-        ).addCallback(gotResult)
 
 def gotResult(resp):
     print "Got response", resp
     reactor.stop()
 
+
 def eb(error):
     print "Got error", error
     reactor.stop()
 
+
 cookie = readCookie()
 nodeName = buildNodeName('nodename')
-epmd = OneShotPortMapperFactory(nodeName, cookie)
-epmd.connectToNode("foo").addCallback(gotConnection).addErrback(eb)
+process = Process(nodeName, cookie)
+process.callRemote("foo", "file", "get_cwd").addCallback(gotResult).addErrback(eb)
 reactor.run()
     </pre>
 
     <h2>Instantiating a node</h2>
 
     <p>
-        The process for creating a node is relatively straightforward. First
-        you  create a node server factory, and make it listen on an arbitrary
-        port. Then you create client connection to the EPMD, giving the server
-        port as argument. This process is simplified by the method publish
-        of the EPMD factory.
+        The process for creating a node is really straightforward: you just
+        have to call the <code>listen</code> of your <code>Process</code>.
+        What happens behind the scene is that first it creates a node server
+        factory, and makes it listen on an arbitrary port. Then it creates a
+        client connection to the EPMD, giving the server port as argument.
 
         The EPMD should be started outside Twisted. It is
         started automatically when you start an erlang application.
     </p>
 
     <pre class="python">
+import sys
+from twisted.python import log
 from twisted.internet import reactor
-from twotp import PersistentPortMapperFactory, readCookie, buildNodeName
+from twotp import Process, readCookie, buildNodeName
 
 cookie = readCookie()
 nodeName = buildNodeName('nodename')
-epmd = PersistentPortMapperFactory(nodeName, cookie)
-epmd.publish()
+log.startLogging(sys.stdout)
+process = Process(nodeName, cookie)
+process.listen()
 reactor.run()
     </pre>
-
-    <p>
-        Once you have the node name and the cookie (see above to understand
-        how), you create a
-        <code class="API" base="twotp.epmd">PersistentPortMapperFactory</code>
-        instance, and call publish on it: it will create the node, make it
-        listen on an arbitrary port, and connect to the EPMD to publish the
-        information.
-    </p>
 
     <p>
         Of course, for now it does nothing useful, so we now see how to
@@ -117,36 +104,41 @@ reactor.run()
     <h2>Receiving method calls from an Erlang node</h2>
 
     <p>
-        The key method here is the method publish you've seen above: this method
-        takes a hash table of name/object. The key for this table is the
-        module used when making a call from Erlang. The value is an instance
-        of a class with methods prefixed by <code>remote_</code>.
+        The key method here is the method <code>registerModule</code> of the
+        <code>Process</code> class: this method takes a name and an object. The
+        name is the name of the module used when making a call from Erlang. The
+        object is an instance of a class with methods prefixed by
+        <code>remote_</code>.
     </p>
 
     <pre class="python">
-class Proxy(object):
-    def remote_bar(self, arg):
-        return arg * 2
-
+import sys
+from twisted.python import log
 from twisted.internet import reactor
-from twotp import PersistentPortMapperFactory, readCookie, buildNodeName
+from twotp import Process, readCookie, buildNodeName
+
+class Proxy(object):
+    def remote_double(self, arg):
+        return arg * 2
 
 cookie = readCookie()
 nodeName = buildNodeName('nodename')
-epmd = PersistentPortMapperFactory(nodeName, cookie)
-epmd.publish(foo=Proxy())
+log.startLogging(sys.stdout)
+process = Process(nodeName, cookie)
+process.registerModule("math", Proxy())
+process.listen()
 reactor.run()
     </pre>
 
     <p>
         The script above define a <code>Proxy</code> with a
-        <code>remote_bar</code> method. We can publish with the keyword
-        foo, which creates a module named foo with the method bar. We can now
-        call this method in an Erlang console:
+        <code>remote_double</code> method. We can publish with the keyword
+        math, which creates a module named math with the method double. We can
+        now call this method in an Erlang console:
     </p>
 
     <pre>
-(erlang@node)1> rpc:call('nodename@node', foo, bar, [3]).
+(erlang@node)1> rpc:call('nodename@node', math, double, [3]).
 {ok,6}
     </pre>
 
@@ -224,11 +216,7 @@ ok
 
     <pre class="python">
 from twisted.internet import reactor
-from twotp import OneShotPortMapperFactory, readCookie, buildNodeName
-
-def gotConnection(inst):
-    return inst.factory.callRemote(inst, "twisted", "get_user", 1
-        ).addCallback(gotResult)
+from twotp import Process, readCookie, buildNodeName
 
 def gotResult(resp):
     print "Got response", resp
@@ -240,8 +228,10 @@ def eb(error):
 
 cookie = readCookie()
 nodeName = buildNodeName('nodename')
-epmd = OneShotPortMapperFactory(nodeName, cookie)
-epmd.connectToNode("twisted_mnesia").addCallback(gotConnection).addErrback(eb)
+process = Process(nodeName, cookie)
+process.callRemote("twisted_mnesia", "twisted", "get_user", 1
+    ).addCallback(gotResult).addErrback(eb)
+
 reactor.run()
     </pre>
 
