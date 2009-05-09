@@ -273,13 +273,6 @@ class Pid(Term):
         self._remoteMonitors.clear()
 
 
-    def addExitHandler(self, pid, handler):
-        """
-        Register a callback to be called when C{pid} exits.
-        """
-        self._handlers.setdefault(pid, []).append(handler)
-
-
     def _signalExit(self, pid, reason):
         """
         Signal remote exit of process C{pid}.
@@ -289,14 +282,6 @@ class Pid(Term):
         for proto, linkedPid in list(self._links):
             if linkedPid == pid:
                 self._links.remove((proto, linkedPid))
-
-
-    def addMonitorHandler(self, ref, handler):
-        """
-        Register a callback to be called when monitoring L{Reference} C{ref}
-        fires.
-        """
-        self._monitorHandlers.setdefault(ref, []).append(handler)
 
 
     def _signalMonitorExit(self, pid, ref, reason):

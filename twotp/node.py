@@ -867,6 +867,21 @@ class ProcessBase(object):
             d.errback(ProcessExited(reason))
 
 
+    def addExitHandler(self, pid, handler):
+        """
+        Register a callback to be called when C{pid} exits.
+        """
+        self.pid._handlers.setdefault(pid, []).append(handler)
+
+
+    def addMonitorHandler(self, ref, handler):
+        """
+        Register a callback to be called when monitoring L{Reference} C{ref}
+        fires.
+        """
+        self.pid._monitorHandlers.setdefault(ref, []).append(handler)
+
+
 
 class Process(ProcessBase):
     """

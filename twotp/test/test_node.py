@@ -6,11 +6,10 @@ Test basic node functionalities.
 """
 
 from twisted.internet.task import Clock
-from twisted.internet.defer import Deferred
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
 from twotp.node import NodeProtocol, buildNodeName, getHostName, MessageHandler
-from twotp.node import BadRPC, Process
+from twotp.node import Process
 from twotp.server import NodeServerFactory
 from twotp.term import Pid, Atom, Reference
 from twotp.test.util import TestCase
@@ -297,7 +296,7 @@ class MessageHandlerTestCase(TestCase):
         destPid = Pid(Atom("spam@egg"), 0, 0, 0)
         destPid.link(None, srcPid)
         called = []
-        destPid.addExitHandler(srcPid, lambda *args: called.append(args))
+        destPid._handlers[srcPid] = [lambda *args: called.append(args)]
 
         ctrlMessage = (self.handler.CTRLMSGOP_EXIT, srcPid, destPid, "reason")
         self.handler.passThroughMessage(None, ctrlMessage, None)
@@ -313,7 +312,7 @@ class MessageHandlerTestCase(TestCase):
         destPid = Pid(Atom("spam@egg"), 0, 0, 0)
         destPid.link(None, srcPid)
         called = []
-        destPid.addExitHandler(srcPid, lambda *args: called.append(args))
+        destPid._handlers[srcPid] = [lambda *args: called.append(args)]
 
         ctrlMessage = (self.handler.CTRLMSGOP_EXIT2, srcPid, destPid, "reason")
         self.handler.passThroughMessage(None, ctrlMessage, None)
@@ -329,7 +328,7 @@ class MessageHandlerTestCase(TestCase):
         destPid = Pid(Atom("spam@egg"), 0, 0, 0)
         destPid.link(None, srcPid)
         called = []
-        destPid.addExitHandler(srcPid, lambda *args: called.append(args))
+        destPid._handlers[srcPid] = [lambda *args: called.append(args)]
 
         ctrlMessage = (self.handler.CTRLMSGOP_EXIT_TT, srcPid, destPid,
                        "reason", "TOKEN")
@@ -346,7 +345,7 @@ class MessageHandlerTestCase(TestCase):
         destPid = Pid(Atom("spam@egg"), 0, 0, 0)
         destPid.link(None, srcPid)
         called = []
-        destPid.addExitHandler(srcPid, lambda *args: called.append(args))
+        destPid._handlers[srcPid] = [lambda *args: called.append(args)]
 
         ctrlMessage = (self.handler.CTRLMSGOP_EXIT2_TT, srcPid, destPid,
                        "reason", "TOKEN")
@@ -419,7 +418,7 @@ class MessageHandlerTestCase(TestCase):
         ref = Reference(Atom("spam@egg"), 0, 0)
 
         called = []
-        destPid.addMonitorHandler(ref, lambda *args: called.append(args))
+        destPid._monitorHandlers[ref] = [lambda *args: called.append(args)]
         ctrlMessage = (self.handler.CTRLMSGOP_MONITOR_P_EXIT, srcPid, destPid,
                        ref, "reason")
         self.handler.passThroughMessage(None, ctrlMessage, None)

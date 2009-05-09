@@ -142,6 +142,89 @@ reactor.run()
 {ok,6}
     </pre>
 
+    <h2>Linking and monitoring an Erlang process</h2>
+
+    <p>
+        To get exit information with an Erlang process, you can create a link
+        or a monitor operation with it. A link is symmetrical, which means that
+        the remote process can be notified of the exit status of the Twisted
+        process as well. Let's try monitoring first.
+    </p>
+
+    <p>
+        Open an Erlang shell, create and register a simple process that can
+        fail.
+    </p>
+
+    <pre>
+(erlang@node)1&gt; F = fun() -&gt; receive X -&gt; list_to_atom(X) end end.
+#Funi&lt;erl_eval.20.67289768&gt;
+(erlang@node)2&gt; Pid1 = spawn(F).
+&lt;0.42.0&gt;
+(erlang@node)3&gt; register(pid1, Pid1).
+true
+    </pre>
+
+    <p>
+        It registers a process under the name <code>pid1</code>, which can
+        easily fails. Now let's start a twisted process monitoring that pid:
+    </p>
+
+    <pre class="python">
+import sys
+from twisted.python import log
+from twisted.internet import reactor
+from twotp import Process, readCookie, buildNodeName
+
+def gotWhereis(pid):
+    return process.monitor(pid).addCallback(gotRef)
+
+def gotRef(ref):
+    process.addMonitorHandler(ref, gotExit)
+
+def gotExit(reason):
+    print "Remote process exited with:", reason
+
+cookie = readCookie()
+nodeName = buildNodeName('nodename')
+log.startLogging(sys.stdout)
+process = Process(nodeName, cookie)
+process.whereis('erlang', 'pid1').addCallback(gotWhereis)
+reactor.run()
+    </pre>
+
+    <p>
+        There are several interesting methods here. First, <code>whereis</code>
+        allows you to get a Pid object from a name, if this name is registered
+        on the other node. Then <code>monitor</code> creates a monitor link,
+        and returns the monitor reference in its callback. You can then call
+        <code>addMonitorHandler</code> as many times you want with this
+        reference: the specified callbacks will be called with the exit
+        notification happens.
+    </p>
+
+    <p>
+        Return to the Erlang shell, and create an error on the process:
+    </p>
+
+    <pre>
+(erlang@node)4&gt; pid1 ! 1.
+
+=ERROR REPORT==== 9-May-2009::19:18:29 ===
+Error in process &lt;0.42.0&gt; on node 'erlang@node' with exit value: {badarg,[{erlang,list_to_atom,[1]}]}
+
+1
+    </pre>
+
+    <p>
+        If everything went fine, you should have the following log in your
+        Twisted application:
+    </p>
+
+    <pre>
+2009-05-09 19:18:29+0200 [NodeClientProtocol,client] Remote process exited with: (&lt;Atom at 0x8b9840c, text 'badarg'&gt;, [(&lt;Atom at 0x8b983cc, text 'erlang'&gt;, &lt;Atom at 0x8b9844c, text 'list_to_atom'&gt;, [1])])
+    </pre>
+
     <h2>An example: using a Mnesia database</h2>
 
     <p>
@@ -168,24 +251,24 @@ reactor.run()
 -export([init/0, insert_user/2, get_user/1]).
 -include("twisted.hrl").
 
-init() ->
+init() -&gt;
     mnesia:create_table(user,
                         [{attributes, record_info(fields, user)}]).
 
-insert_user(UserName, UserId) ->
+insert_user(UserName, UserId) -&gt;
     User = #user{id=UserId, name=UserName},
-    Fun = fun() ->
+    Fun = fun() -&gt;
             mnesia:write(User)
         end,
     mnesia:transaction(Fun).
 
-get_user(UserId) ->
-    Fun = fun() ->
+get_user(UserId) -&gt;
+    Fun = fun() -&gt;
             [User] = mnesia:read(user, UserId, read),
             User
         end,
     case mnesia:transaction(Fun) of
-        {atomic, User} ->
+        {atomic, User} -&gt;
             User
     end.
     </pre>
@@ -198,15 +281,15 @@ get_user(UserId) ->
     <pre class="shell">
 $ erl -sname twisted_mnesia
 
-(twisted_mnesia@localhost)1> c(twisted).
+(twisted_mnesia@localhost)1&gt; c(twisted).
 {ok,twisted}
-(twisted_mnesia@localhost)2> mnesia:start().
+(twisted_mnesia@localhost)2&gt; mnesia:start().
 ok
-(twisted_mnesia@localhost)3> twisted:init().
+(twisted_mnesia@localhost)3&gt; twisted:init().
 {atomic,ok}
-(twisted_mnesia@localhost)4> twisted:insert_user(test1, 1).
+(twisted_mnesia@localhost)4&gt; twisted:insert_user(test1, 1).
 {atomic,ok}
-(twisted_mnesia@localhost)5> twisted:get_user(1).
+(twisted_mnesia@localhost)5&gt; twisted:get_user(1).
 {user,1,test1}
     </pre>
 
