@@ -15,6 +15,7 @@ def testPing(process):
     def eb(error):
         print "Got error", error
     return process.ping("erlang").addCallback(cb).addErrback(eb)
+    #return process.callRemote("erlang", "file", "get_cwa").addCallback(cb).addErrback(eb)
 
 
 def testReceive(process):
@@ -45,9 +46,9 @@ def main(nodeName):
     cookie = readCookie()
     nodeName = buildNodeName(nodeName)
     process = Process(nodeName, cookie)
-    process.listen(twisted=RemoteCalls(process)
-        ).addCallback(lambda x: testReceive(process))
-    #testPing(process)
+    process.registerModule("twisted", RemoteCalls(process))
+    #process.listen().addCallback(lambda x: testReceive(process))
+    testPing(process)
     reactor.run()
 
 

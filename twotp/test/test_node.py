@@ -234,23 +234,6 @@ class MessageHandlerTestCase(TestCase):
         self.handler = MessageHandler("spam@egg", "test_cookie")
 
 
-    def test_send(self):
-        """
-        Test handling of a SEND token.
-        """
-        pid = Pid(Atom("foo@bar"), 0, 0, 0)
-        ctrlMessage = (self.handler.CTRLMSGOP_SEND, "foo", pid)
-        message = object()
-        d = Deferred()
-        self.handler._pendingResponses[pid] = [d]
-        self.handler.passThroughMessage(None, ctrlMessage, message)
-        def cb(result):
-            self.assertEquals(result[0], ctrlMessage[1:])
-            self.assertIdentical(result[1], message)
-        d.addCallback(cb)
-        return d
-
-
     def test_link(self):
         """
         Test handling of a LINK token.
@@ -336,23 +319,6 @@ class MessageHandlerTestCase(TestCase):
         self.handler.passThroughMessage(None, ctrlMessage, None)
         self.assertEquals(called, [("reason",)])
         self.assertEquals(destPid._links, set([]))
-
-
-    def test_sendTT(self):
-        """
-        Test handling of a SEND_TT token.
-        """
-        pid = Pid(Atom("foo@bar"), 0, 0, 0)
-        ctrlMessage = (self.handler.CTRLMSGOP_SEND_TT, "foo", pid, "TOKEN")
-        message = object()
-        d = Deferred()
-        self.handler._pendingResponses[pid] = [d]
-        self.handler.passThroughMessage(None, ctrlMessage, message)
-        def cb(result):
-            self.assertEquals(result[0], ctrlMessage[1:])
-            self.assertIdentical(result[1], message)
-        d.addCallback(cb)
-        return d
 
 
     def test_exitTT(self):
@@ -460,44 +426,6 @@ class MessageHandlerTestCase(TestCase):
         self.assertEquals(called, [("reason",)])
 
 
-    def test_operationRegSend(self):
-        """
-        Test handling of a REG_SEND token.
-        """
-        pid = Pid(Atom("foo@bar"), 0, 0, 0)
-        ctrlMessage = (self.handler.CTRLMSGOP_REG_SEND, pid, "cookie",
-                       Atom("foo"))
-        message = object()
-        proto = object()
-        d = Deferred()
-        def cb(newProto, newMessage):
-            self.assertIdentical(newProto, proto)
-            self.assertIdentical(newMessage, message)
-            d.callback(None)
-        self.handler.regsend_foo = cb
-        self.handler.passThroughMessage(proto, ctrlMessage, message)
-        return d
-
-
-    def test_operationRegSendTT(self):
-        """
-        Test handling of a REG_SEND_TT token.
-        """
-        pid = Pid(Atom("foo@bar"), 0, 0, 0)
-        ctrlMessage = (self.handler.CTRLMSGOP_REG_SEND_TT, pid, "cookie",
-                       Atom("foo"), "TOKEN")
-        message = object()
-        proto = object()
-        d = Deferred()
-        def cb(newProto, newMessage):
-            self.assertIdentical(newProto, proto)
-            self.assertIdentical(newMessage, message)
-            d.callback(None)
-        self.handler.regsend_foo = cb
-        self.handler.passThroughMessage(proto, ctrlMessage, message)
-        return d
-
-
     def test_operationRegSendUnhandled(self):
         """
         Test handling of a REG_SEND token, for an unknown method.
@@ -506,166 +434,6 @@ class MessageHandlerTestCase(TestCase):
         ctrlMessage = (self.handler.CTRLMSGOP_REG_SEND, pid, "cookie",
                        Atom("foo"))
         self.handler.passThroughMessage(None, ctrlMessage, None)
-
-
-    def test_ping(self):
-        """
-        Test handling a ping request.
-        """
-        pid = Pid(Atom("foo@bar"), 0, 0, 0)
-        ref = Reference(Atom("foo@bar"), 0, 0)
-
-        factory = DummyFactory()
-        proto = TestableNodeProtocol()
-        transport = CloseNotifiedTransport()
-        proto.factory = factory
-        proto.makeConnection(transport)
-        transport.protocol = proto
-
-        message = (Atom("$gen_call"), (pid, ref), (Atom("is_auth"),))
-
-        self.handler.regsend_net_kernel(proto, message)
-
-        self.assertEquals(transport.value(),
-            "\x006p\x83h\x03a\x02d\x00\x00gd\x00\x07foo@bar"
-            "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x83h\x02ed\x00\x07foo@bar"
-            "\x00\x00\x00\x00\x00d\x00\x03yes")
-
-
-    def test_sendPing(self):
-        """
-        Check successful ping request.
-        """
-        factory = DummyFactory()
-        proto = TestableNodeProtocol()
-        transport = CloseNotifiedTransport()
-        proto.factory = factory
-        proto.makeConnection(transport)
-        transport.protocol = proto
-        self.assertEquals(transport.value(), "")
-        self.handler.nodeName = "foo@bar"
-        d = self.handler.ping(proto)
-        d.addCallback(self.assertEquals, "pong")
-        self.assertEquals(transport.value(),
-            "\x00\x7fp\x83h\x04a\x06gd\x00\x07foo@bar\x00\x00\x00\x00\x00"
-            "\x00\x00\x00\x00d\x00\x00d\x00\nnet_kernel\x83h\x03d\x00\t"
-            "$gen_callh\x02gd\x00\x07foo@bar\x00\x00\x00\x00\x00\x00\x00\x00"
-            "\x00r\x00\x03d\x00\x07foo@bar\x00\x00\x00\x00\x01\x00\x00\x00"
-            "\x00\x00\x00\x00\x00h\x02d\x00\x07is_authd\x00\x07foo@bar")
-        proto.state = "connected"
-        pid = Pid(Atom("foo@bar"), 0, 0, 0)
-        ref = Reference(Atom("foo@bar"), 0, 0)
-        yes = Atom("yes")
-        self.handler.operation_send(proto, (Atom(""), pid), (ref, yes))
-        return d
-
-
-    def test_callRemote(self):
-        """
-        C{callRemote]} is able to serialize arguments and pass the method call
-        via a B{rex} format, and handle response.
-        """
-        factory = DummyFactory()
-        proto = TestableNodeProtocol()
-        transport = CloseNotifiedTransport()
-        proto.factory = factory
-        proto.makeConnection(transport)
-        transport.protocol = proto
-        self.assertEquals(transport.value(), "")
-        self.handler.nodeName = "foo@bar"
-        d = self.handler.callRemote(
-            proto, "some_module", "some_func", 1, "foo")
-        d.addCallback(self.assertEquals, [2, "bar"])
-        self.assertEquals(transport.value(),
-            "\x00rp\x83h\x04a\x06gd\x00\x07foo@bar\x00\x00\x00\x00\x00\x00"
-            "\x00\x00\x00d\x00\x00d\x00\x03rex\x83h\x02gd\x00\x07foo@bar\x00"
-            "\x00\x00\x00\x00\x00\x00\x00\x00h\x05d\x00\x04calld\x00\x0b"
-            "some_moduled\x00\tsome_funcl\x00\x00\x00\x02a\x01k\x00\x03"
-            "foojd\x00\x04user")
-        proto.state = "connected"
-        pid = Pid(Atom("foo@bar"), 0, 0, 0)
-        self.handler.operation_send(
-            proto, (Atom(""), pid), (Atom("rex"), [2, "bar"]))
-        return d
-
-
-    def test_callRemoteListResult(self):
-        """
-        If the result of a callRemote is an empty list, it correctly passes it
-        to the caller: previously error detection of B{badrpc} broke it.
-        """
-        factory = DummyFactory()
-        proto = TestableNodeProtocol()
-        transport = CloseNotifiedTransport()
-        proto.factory = factory
-        proto.makeConnection(transport)
-        transport.protocol = proto
-        self.assertEquals(transport.value(), "")
-        self.handler.nodeName = "foo@bar"
-        d = self.handler.callRemote(
-            proto, "some_module", "some_func", 1, "foo")
-        d.addCallback(self.assertEquals, [])
-        proto.state = "connected"
-        pid = Pid(Atom("foo@bar"), 0, 0, 0)
-        self.handler.operation_send(
-            proto, (Atom(""), pid), (Atom("rex"), []))
-        return d
-
-
-    def test_callRemoteError(self):
-        """
-        If a response of a C{callRemote} contains a B{badrpc} atom, the
-        callRemote returns a C{BadRPC} failure.
-        """
-        factory = DummyFactory()
-        proto = TestableNodeProtocol()
-        transport = CloseNotifiedTransport()
-        proto.factory = factory
-        proto.makeConnection(transport)
-        transport.protocol = proto
-        self.assertEquals(transport.value(), "")
-        self.handler.nodeName = "foo@bar"
-        d = self.handler.callRemote(
-            proto, "some_module", "some_func", 1, "foo")
-        proto.state = "connected"
-        pid = Pid(Atom("foo@bar"), 0, 0, 0)
-        self.handler.operation_send(
-            proto, (Atom(""), pid), (Atom("rex"), (Atom("badrpc"), Atom("EXIT"))))
-        return self.assertFailure(d, BadRPC)
-
-
-    def test_receiveRPC(self):
-        """
-        Test handling a RPC request.
-        """
-        pid = Pid(Atom("foo@bar"), 0, 0, 0)
-        ref = Reference(Atom("foo@bar"), 0, 0)
-
-        factory = DummyFactory()
-        proto = TestableNodeProtocol()
-        transport = CloseNotifiedTransport()
-        proto.factory = factory
-        proto.makeConnection(transport)
-        transport.protocol = proto
-
-        called = []
-
-        class ModuleHandler(object):
-            def remote_func1(self, *args):
-                called.append(args)
-
-        self.handler.methodsHolder = {"module1": ModuleHandler()}
-
-        message = (Atom("rex"), (pid, ref),
-                   (None, Atom("module1"), Atom("func1"), ["arg1", "arg2"]))
-
-        self.handler.regsend_rex(proto, message)
-
-        self.assertEquals(transport.value(),
-            "\x007p\x83h\x03a\x02d\x00\x00gd\x00\x07foo@bar"
-            "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x83h\x02ed\x00\x07foo@bar"
-            "\x00\x00\x00\x00\x00d\x00\x04null")
-        self.assertEquals(called, [(proto, "arg1", "arg2")])
 
 
     def test_createPid(self):
@@ -840,19 +608,17 @@ class ProcessTestCase(TestCase):
     def test_listen(self):
         """
         L{Process.listen} creates an instance of
-        L{PersistentPortMapperFactory}, and asks it to publish the passed
-        C{methodsHolder}. Once done, it set the calls handler of the server
-        factory to the process calls handler.
+        L{PersistentPortMapperFactory}, and asks it to publish to the EPMD.
+        Once done, it set the calls handler of the server factory to the
+        process calls handler.
         """
         holder = object()
-        d = self.process.listen(spam=holder)
+        d = self.process.listen()
         self.process.persistentEpmd._connectDeferred.callback(2)
         def check(ignored):
             factory = self.process.serverFactory
             self.assertIsInstance(factory, NodeServerFactory)
             self.assertIdentical(factory.handler, self.process.handler)
-            self.assertEquals(
-                self.process.handler.methodsHolder, {"spam": holder})
         return d.addCallback(check)
 
 
@@ -877,7 +643,7 @@ class ProcessTestCase(TestCase):
         [factory] = epmd.factories
         self.assertEquals(
             epmd.factoriesArgs,
-            [({}, "foo@bar", "test_cookie", epmd.onConnectionLost)])
+            [("foo@bar", "test_cookie", epmd.onConnectionLost)])
 
         clientProto = TestableNodeProtocol()
         clientProto.factory = factory
@@ -920,9 +686,17 @@ class ProcessTestCase(TestCase):
         transport.protocol = proto
         self.process.serverFactory._nodeCache = {"egg@spam": proto}
 
+        pids = set(self.process.handler._parser._pids)
         d = self.process.ping("egg@spam")
+        self.assertEquals(
+            transport.value(),
+            "\x00\x7fp\x83h\x04a\x06d\x00\x00gd\x00\x07foo@bar\x00\x00\x00"
+            "\x03\x00\x00\x00\x00\x00d\x00\nnet_kernel\x83h\x03d\x00\t"
+            "$gen_callh\x02gd\x00\x07foo@bar\x00\x00\x00\x03\x00\x00\x00\x00"
+            "\x00r\x00\x03d\x00\x07foo@bar\x00\x00\x00\x00\x01\x00\x00\x00"
+            "\x00\x00\x00\x00\x00h\x02d\x00\x07is_authd\x00\x07foo@bar")
+        pid = list(set(self.process.handler._parser._pids) - pids)[0]
         proto.state = "connected"
-        pid = Pid(Atom("foo@bar"), 0, 0, 0)
         ref = Reference(Atom("foo@bar"), 0, 0)
         yes = Atom("yes")
 

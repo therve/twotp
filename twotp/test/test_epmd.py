@@ -378,7 +378,7 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         to the erlang node.
         """
         clientFactory = DummyClientFactory()
-        self.factory.nodeFactoryClass = lambda a, b, c, d: clientFactory
+        self.factory.nodeFactoryClass = lambda a, b, c: clientFactory
         d = self.factory.connectToNode("egg@spam")
         transport = StringTransportWithDisconnection()
         proto = self.factory.buildProtocol(("127.0.01", 4369))
