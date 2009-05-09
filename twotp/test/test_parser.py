@@ -5,7 +5,7 @@
 Parser tests.
 """
 
-from twotp.term import Atom, Tuple, Pid, Reference, Integer, String, List
+from twotp.term import Atom, Tuple, Pid, Reference, Integer, List
 from twotp.term import Float, Port, Binary, Fun, NewFun, Export, BitBinary
 from twotp.parser import Parser, RemainingDataError, UnhandledCode
 from twotp.test.util import TestCase
