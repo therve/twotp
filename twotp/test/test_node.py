@@ -47,7 +47,7 @@ class DummyFactory(object):
         self.times = range(1, 10)
         self.netTickTime = 1
         self.creation = 2
-        self.handler = MessageHandler({}, "spam@egg", "test_cookie")
+        self.handler = MessageHandler("spam@egg", "test_cookie")
 
 
     def timeFactory(self):
@@ -231,7 +231,7 @@ class MessageHandlerTestCase(TestCase):
         """
         Create a C{MessageHandler} for the tests.
         """
-        self.handler = MessageHandler({}, "spam@egg", "test_cookie")
+        self.handler = MessageHandler("spam@egg", "test_cookie")
 
 
     def test_send(self):

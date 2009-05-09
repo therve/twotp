@@ -45,7 +45,7 @@ class DummyClientFactory(object):
         self.times = range(10)
         self.netTickTime = 30
         self._connectDeferred = Deferred()
-        self.handler = MessageHandler({}, "spam@egg", "test_cookie")
+        self.handler = MessageHandler("spam@egg", "test_cookie")
 
 
     def timeFactory(self):
@@ -288,7 +288,7 @@ class NodeClientFactoryTestCase(TestCase):
         constructor.
         """
         d = Deferred()
-        factory = NodeClientFactory(None, "foo@bar", "cookie", d.callback)
+        factory = NodeClientFactory("foo@bar", "cookie", d.callback)
         def cb(res):
             self.assertEquals(res, factory)
         d.addCallback(cb)

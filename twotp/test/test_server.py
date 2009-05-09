@@ -29,7 +29,7 @@ class DummyServerFactory(object):
         """
         self.times = range(10)
         self.netTickTime = 30
-        self.handler = MessageHandler({}, "spam@egg", "test_cookie")
+        self.handler = MessageHandler("spam@egg", "test_cookie")
 
 
     def timeFactory(self):
@@ -160,7 +160,7 @@ class NodeServerFactoryTestCase(TestCase):
         of the factory.
         """
         d = Deferred()
-        factory = NodeServerFactory(None, "foo@bar", "test_cookie", d)
+        factory = NodeServerFactory("foo@bar", "test_cookie", d)
         self.assertEquals(factory.creation, 0)
         d.callback(2)
         self.assertEquals(factory.creation, 2)
@@ -172,7 +172,7 @@ class NodeServerFactoryTestCase(TestCase):
         challenge operation succeeds.
         """
         d = Deferred()
-        factory = NodeServerFactory(None, "foo@bar", "test_cookie", d)
+        factory = NodeServerFactory("foo@bar", "test_cookie", d)
         factory.randomFactory = lambda: 2
         proto = factory.buildProtocol(None)
         transport = StringTransportWithDisconnection()
