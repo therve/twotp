@@ -268,4 +268,4 @@ class PackTestCase(TestCase):
         Test packing a new format float.
         """
         self.assertEquals(self.packer.packOneTerm(NewFloat(1.234)),
-            "?\xf3\xbev\xc8\xb49X")
+            "F?\xf3\xbev\xc8\xb49X")

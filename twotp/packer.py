@@ -120,7 +120,7 @@ class Packer(ConstantHolder):
         """
         Pack a new float.
         """
-        return struct.pack("!d", term.value)
+        return self.packChar(self.MAGIC_NEW_FLOAT) + struct.pack("!d", term.value)
 
 
     def pack_str(self, term):

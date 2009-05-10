@@ -959,8 +959,8 @@ class RexProcess(ProcessBase):
         """
         Forward the string representation of the exception to the node.
         """
-        log.handler.err(error)
-        self.send(proto, toPid,
+        log.err(error)
+        self.handler.send(proto, toPid,
             Tuple((ref, (Atom('badrpc'), str(error.value)))))
 
 
