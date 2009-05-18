@@ -5,7 +5,7 @@
 Packer tests.
 """
 
-from twotp.term import Atom, Tuple, Pid, Reference, List, NewFloat
+from twotp.term import Atom, Tuple, Pid, Reference, List, NewFloat, Binary
 from twotp.packer import Packer, UnhandledClass
 from twotp.test.util import TestCase
 
@@ -139,6 +139,14 @@ class PackTestCase(TestCase):
         term = self.packer.packOneTerm(longString)
         self.assertEquals(term,
             "l\x00\x00\x00\x14axaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxj")
+
+
+    def test_packBInary(self):
+        """
+        Test packing a binary value.
+        """
+        term = self.packer.packOneTerm(Binary("abc"))
+        self.assertEquals(term, "m\x00\x00\x00\x03abc")
 
 
     def test_packPid(self):

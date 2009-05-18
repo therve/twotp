@@ -123,6 +123,14 @@ class Packer(ConstantHolder):
         return self.packChar(self.MAGIC_NEW_FLOAT) + struct.pack("!d", term.value)
 
 
+    def pack_binary(self, term):
+        """
+        Pack a binary.
+        """
+        length = self.packInt(len(term.value))
+        return self.packChar(self.MAGIC_BINARY) + length + term.value
+
+
     def pack_str(self, term):
         """
         Pack a string.
