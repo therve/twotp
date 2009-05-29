@@ -686,6 +686,14 @@ class ProcessBase(object):
         return oneShotEpmd.connectToNode(nodeName).addCallback(sync)
 
 
+    def names(self, host):
+        if not host in self.oneShotEpmds:
+            self.oneShotEpmds[host] = self.oneShotPortMapperClass(
+                self.nodeName, self.cookie, host)
+        oneShotEpmd = self.oneShotEpmds[host]
+        return oneShotEpmd.names()
+        
+
     def register(self, name):
         """
         Register this process with name C{name}.
