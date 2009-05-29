@@ -452,6 +452,11 @@ class OneShotPortMapperFactory(ClientFactory):
         return d
 
 
+    def closeConnections(self):
+        for node in self._nodeCache.values():
+            node.transport.loseConnection()
+
+
 
 class PersistentPortMapperService(Service):
     """
