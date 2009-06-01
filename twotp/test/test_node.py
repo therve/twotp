@@ -735,3 +735,21 @@ class ProcessTestCase(TestCase):
             proto, (Atom(""), pid), (Atom("rex"), [2, "arg"]))
 
         return d.addCallback(self.assertEquals, [2, "arg"])
+
+
+    def test_names(self):
+        """
+        L{Process.names} returns the list of nodes on a particular host.
+        """
+        d = self.process.names("spam")
+        epmd = self.process.oneShotEpmds["spam"]
+        transport = StringTransportWithDisconnection()
+        proto = epmd.buildProtocol(("127.0.01", 4369))
+        proto.makeConnection(transport)
+        transport.protocol = proto
+        self.assertEquals(transport.value(), "\x00\x01n")
+        proto.dataReceived("\x00\x00\x00\x01")
+        proto.dataReceived("name %s at port %s\n" % ("foo", 1234))
+        proto.dataReceived("name %s at port %s\n" % ("egg", 4321))
+        transport.loseConnection()
+        return d.addCallback(self.assertEquals, [("foo", 1234), ("egg", 4321)])

@@ -687,6 +687,9 @@ class ProcessBase(object):
 
 
     def names(self, host):
+        """
+        Return the list of registered nodes on the give C{host}.
+        """
         if not host in self.oneShotEpmds:
             self.oneShotEpmds[host] = self.oneShotPortMapperClass(
                 self.nodeName, self.cookie, host)
