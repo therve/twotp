@@ -2,7 +2,7 @@
 # See LICENSE for details.
 
 """
-Example emulating rabbitmqctl, just calling list_vhosts for now.
+Example of a web server interacting with RabbitMQ.
 """
 
 import sys
