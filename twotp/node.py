@@ -876,8 +876,6 @@ class ProcessBase(object):
         if self._receiveDeferred is not None:
             d, self._receiveDeferred = self._receiveDeferred, None
             d.errback(ProcessExited(reason))
-        for epmd in self.oneShotEpmds.values():
-            epmd.closeConnections()
 
 
     def addExitHandler(self, pid, handler):
