@@ -14,7 +14,7 @@ from twotp.node import buildNodeName, readCookie, Process
 
 
 
-version = "0.6"
+version = "0.7"
 
 
 
