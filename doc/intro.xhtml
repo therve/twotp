@@ -142,6 +142,106 @@ reactor.run()
 {ok,6}
     </pre>
 
+
+    <h2>Reading data sent by an Erlang node</h2>
+
+    <p>
+        This is the next step after using RPC, which is the basic communication
+        mechanism. But we can do better using standard process communication of
+        Erlang, which provides a nice asynchronous mechanism. The
+        <code>receive</code> method of the <code>Process</code> class will
+        return a <code>Deferred</code> which will be fired when someone sends a
+        message to your process.
+    </p>
+
+    <pre class="python">
+import sys
+from twisted.python import log
+from twisted.internet import reactor
+from twotp import Process, readCookie, buildNodeName
+
+
+def receive(process):
+    def cb(resp):
+        print "Got response", resp
+    def eb(error):
+        print "Got error", error
+    return process.receive(
+        ).addCallback(cb
+        ).addErrback(eb
+        ).addBoth(lambda x: receive(process))
+
+
+cookie = readCookie()
+nodeName = buildNodeName('nodename')
+log.startLogging(sys.stdout)
+process = Process(nodeName, cookie)
+process.register("main")
+process.listen().addCallback(lambda x: receive(process))
+reactor.run()
+    </pre>
+
+    <p>
+        This example shows how you can easily read message forever in a TwOTP
+        program, by calling receive indefinitely. This method also supports a
+        timeout argument if you don't want to wait forever for a message.
+
+        To send data back to an Erlang node, you can easily use the
+        <code>send</code> method which takes a PID attribute. For example,
+        emulating the previous RPC:
+    </p>
+
+    <pre class="python">
+import sys
+from twisted.python import log
+from twisted.internet import reactor
+from twotp import Process, readCookie, buildNodeName
+
+
+def receive(process):
+    def cb(resp):
+        print "Got response", resp
+        pid = resp[0]
+        process.send(pid, resp[1] * 2)
+    def eb(error):
+        print "Got error", error
+    return process.receive(
+        ).addCallback(cb
+        ).addErrback(eb
+        ).addBoth(lambda x: receive(process))
+
+
+cookie = readCookie()
+nodeName = buildNodeName('nodename')
+log.startLogging(sys.stdout)
+process = Process(nodeName, cookie)
+process.register("main")
+process.listen().addCallback(lambda x: receive(process))
+reactor.run()
+    </pre>
+
+    <p>
+        The only difference here is that we're making some assumption on the
+        format, namely that the first argument with be a PID, and the second
+        something to double.
+
+        And on the Erlang side:
+    </p>
+
+<pre>
+(erlang@node)1&gt;  {main, nodename@node} ! {self(), 1}.
+{&lt;0.37.0&gt;,1}
+(erlang@node)2&gt; receive
+(erlang@node)2&gt;     X -&gt; io:format("Result: ~p~n", [X])
+(erlang@node)2&gt; end.
+Result: 2
+</pre>
+
+    <p>
+        Note that by calling the <code>register</code> method, we've been able
+        to use the passed name to make the call from Erlang.
+    </p>
+
     <h2>Using the twotp twisted plugin</h2>
 
     <p>
