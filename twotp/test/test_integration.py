@@ -110,7 +110,7 @@ class IntegrationTestCase(TestCase):
             self.erlangName, "file", "get_cwd").addCallback(check)
 
 
-    def test_dict_compatibility(self):
+    def test_dictCompatibility(self):
         """
         Dicts created by twotp are compatible with erlang dict.
         """
@@ -123,4 +123,20 @@ class IntegrationTestCase(TestCase):
 
         return process.callRemote(
             self.erlangName, "dict", "store", Atom("egg"), 4, d
+            ).addCallback(check)
+
+
+    def test_setCompatibility(self):
+        """
+        Sets created by twotp are compatible with erlang sets.
+        """
+        s = set([Atom("foo"), 3])
+        process = Process(self.nodeName, self.cookie)
+
+        def check(response):
+            expected = set([Atom("foo"), 3, Atom("egg")])
+            self.assertEquals(response, expected)
+
+        return process.callRemote(
+            self.erlangName, "sets", "add_element", Atom("egg"), s
             ).addCallback(check)

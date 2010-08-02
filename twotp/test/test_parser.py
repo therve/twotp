@@ -291,7 +291,7 @@ class ParseTestCase(TestCase):
         Test parsing a set object.
         """
         data = (
-            "\x83h\td\x00\x04setsa\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjj"
+            "\x83h\td\x00\x03seta\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjj"
             "h\x01h\x10l\x00\x00\x00\x01d\x00\x03barjl\x00\x00\x00\x01d\x00"
             "\x03foojjjjjjjjjjjjjjj")
         self.assertEquals(

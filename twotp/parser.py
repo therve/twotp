@@ -157,7 +157,7 @@ class Parser(ConstantHolder):
         Identify a set from a tuple of elements.
         """
         if elements:
-            if isinstance(elements[0], Atom) and elements[0].text == "sets":
+            if isinstance(elements[0], Atom) and elements[0].text == "set":
                 if len(elements) == 9:
                     # 'set', size, active, max, offset, expand, contract,
                     # empty, content

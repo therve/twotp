@@ -250,7 +250,7 @@ class Packer(ConstantHolder):
         # values in the content are placed in a particular order, specified by
         # the phash function. For now, it just put the values in Python order.
         content = tuple([[i] for i in term])
-        d = (Atom('sets'), size, slot, slot, slot/2,
+        d = (Atom('set'), size, slot, slot, slot/2,
             expand, contract, empty, (content + emptyRemain,))
         return self.packOneTerm(d)
 

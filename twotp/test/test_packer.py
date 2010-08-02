@@ -253,7 +253,7 @@ class PackTestCase(TestCase):
         val = [i.text for i in s]
         self.assertEquals(
             self.packer.packOneTerm(s),
-            "h\td\x00\x04setsa\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjj"
+            "h\td\x00\x03seta\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjj"
             "h\x01h\x10l\x00\x00\x00\x01d\x00\x03%sjl\x00\x00\x00\x01"
             "d\x00\x03%sjjjjjjjjjjjjjjj" % tuple(val))
 
@@ -265,9 +265,9 @@ class PackTestCase(TestCase):
         """
         s = set()
         expected = (
-            Atom("sets"), 0, 16, 16, 8, 80, 48, ([],) * 16, (([],) * 16,))
+            Atom("set"), 0, 16, 16, 8, 80, 48, ([],) * 16, (([],) * 16,))
         expectedRaw = (
-            "h\td\x00\x04setsa\x00a\x10a\x10a\x08aPa0h\x10"
+            "h\td\x00\x03seta\x00a\x10a\x10a\x08aPa0h\x10"
             "jjjjjjjjjjjjjjjjh\x01h\x10jjjjjjjjjjjjjjjj")
         self.assertEquals(
             self.packer.packOneTerm(s), self.packer.packOneTerm(expected))
