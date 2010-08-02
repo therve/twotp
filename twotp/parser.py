@@ -20,12 +20,6 @@ class UnhandledCode(KeyError):
     """
 
 
-class ImproperListError(ValueError):
-    """
-    Exception raised when having an improper list.
-    """
-
-
 
 class RemainingDataError(ValueError):
     """
@@ -115,8 +109,11 @@ class Parser(ConstantHolder):
         arity = self.parseInt(data[:4])
         elements, data = self._parse_seq(arity, data[4:])
         if len(data) == 0 or ord(data[0]) != self.MAGIC_NIL:
-            raise ImproperListError()
-        return List(elements), data[1:]
+            term, data = self.binaryToTerm(data)
+            elements.append(term)
+            return List(elements), data
+        else:
+            return List(elements), data[1:]
 
 
     def _parse_seq(self, arity, data):
