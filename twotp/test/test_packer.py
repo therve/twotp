@@ -228,6 +228,23 @@ class PackTestCase(TestCase):
             "jjjjjjjjjjjjjjjj" % elts)
 
 
+    def test_packEmptyDict(self):
+        """
+        Test packing an empty dict, against the expected corresponding data
+        structure, and raw binary.
+        """
+        d = {}
+        expected = (
+            Atom("dict"), 0, 16, 16, 8, 80, 48, ([],) * 16, (([],) * 16,))
+        expectedRaw = (
+            "h\td\x00\x04dicta\x00a\x10a\x10a\x08aPa0h\x10"
+            "jjjjjjjjjjjjjjjjh\x01h\x10jjjjjjjjjjjjjjjj")
+        self.assertEquals(
+            self.packer.packOneTerm(d), self.packer.packOneTerm(expected))
+        self.assertEquals(
+            self.packer.packOneTerm(d), expectedRaw)
+
+
     def test_packSet(self):
         """
         Test primary support for set.

@@ -76,9 +76,11 @@ class IntegrationTestCase(TestCase):
         # We wait for input to be available
         return self.protocol.onDataReceived
 
+
     def tearDown(self):
         self.protocol.transport.write("q().\n")
         return self.assertFailure(self.protocol.onCompletion, ProcessDone)
+
 
     def test_ping(self):
         """
@@ -91,6 +93,7 @@ class IntegrationTestCase(TestCase):
             self.assertEquals(response, "pong")
 
         return process.ping(self.erlangName).addCallback(check)
+
 
     def test_callRemote(self):
         """
@@ -105,3 +108,19 @@ class IntegrationTestCase(TestCase):
 
         return process.callRemote(
             self.erlangName, "file", "get_cwd").addCallback(check)
+
+
+    def test_dict_compatibility(self):
+        """
+        Dicts created by twotp are compatible with erlang dict.
+        """
+        d = {Atom("foo"): "spam"}
+        process = Process(self.nodeName, self.cookie)
+
+        def check(response):
+            expected = {Atom("egg"): 4, Atom("foo"): map(ord, "spam")}
+            self.assertEquals(response, expected)
+
+        return process.callRemote(
+            self.erlangName, "dict", "store", Atom("egg"), 4, d
+            ).addCallback(check)
