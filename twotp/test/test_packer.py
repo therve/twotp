@@ -258,6 +258,23 @@ class PackTestCase(TestCase):
             "d\x00\x03%sjjjjjjjjjjjjjjj" % tuple(val))
 
 
+    def test_packEmptySet(self):
+        """
+        Test packing an empty set, against the expected corresponding data
+        structure, and raw binary.
+        """
+        s = set()
+        expected = (
+            Atom("sets"), 0, 16, 16, 8, 80, 48, ([],) * 16, (([],) * 16,))
+        expectedRaw = (
+            "h\td\x00\x04setsa\x00a\x10a\x10a\x08aPa0h\x10"
+            "jjjjjjjjjjjjjjjjh\x01h\x10jjjjjjjjjjjjjjjj")
+        self.assertEquals(
+            self.packer.packOneTerm(s), self.packer.packOneTerm(expected))
+        self.assertEquals(
+            self.packer.packOneTerm(s), expectedRaw)
+
+
     def test_packUnhandledClass(self):
         """
         Try packing an object not handled.
