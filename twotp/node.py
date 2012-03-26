@@ -251,7 +251,7 @@ class MessageHandler(object):
         """
         cookie = Atom('')
         ctrlMsg = Tuple(
-            (Integer(self.CTRLMSGOP_REG_SEND), cookie, pid, processName))
+            (Integer(self.CTRLMSGOP_REG_SEND), pid, cookie, processName))
         proto.send("p" + termToBinary(ctrlMsg) + termToBinary(msg))
 
 

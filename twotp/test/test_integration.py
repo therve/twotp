@@ -22,7 +22,7 @@ from twotp.test.util import TestCase
 
 class ErlangProcessProtocol(ProcessProtocol):
     """
-    A simple process protocol, with capturing capibilities suitable for
+    A simple process protocol, with capturing capabilities suitable for
     tests.
 
     @ivar onConnection: L{Deferred} fired when the connection has been
@@ -68,11 +68,11 @@ class IntegrationTestCase(TestCase):
             raise SkipTest("No erl process")
         self.cookie = "twotp-cookie"
         self.erlangName = "twotp-erlang-test"
+        self.nodeName = buildNodeName("twotp-python-test")
         args = [
             executables[0], "-setcookie", self.cookie, "-sname", self.erlangName]
         self.process = reactor.spawnProcess(
             self.protocol, executables[0], args, env=dict(os.environ))
-        self.nodeName = buildNodeName("twotp-python-test")
         # We wait for input to be available
         return self.protocol.onDataReceived
 
