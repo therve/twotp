@@ -160,7 +160,8 @@ class NodeClientProtocol(NodeProtocol):
         Forward result to factory if necessary, and close the connection.
         """
         if self.factory._connectDeferred is not None:
-            d, self.factory._connectDeferred = self.factory._connectDeferred, None
+            d, self.factory._connectDeferred = (self.factory._connectDeferred,
+                                                None)
             d.errback(reason)
         self.transport.loseConnection()
 

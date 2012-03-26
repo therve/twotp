@@ -281,7 +281,6 @@ class Parser(ConstantHolder):
         """
         idLen = self.parseShort(data[:2])
         nodeName, data = self.binaryToTerm(data[2:])
-        nprim = 4 * idLen
         creation = self._parse_creation(data[0])
         refIds = [self._parse_id(data[1:5])]
         data = data[5:]

@@ -8,10 +8,7 @@ Basic node protocol and node message handler classes.
 
 import os, time, random
 
-try:
-    from hashlib import md5
-except ImportError:
-    from md5 import md5
+from hashlib import md5
 
 from twisted.internet.protocol import Protocol
 from twisted.internet.defer import (
@@ -171,7 +168,6 @@ class MessageHandler(object):
         """
         Manage C{CTRLMSGOP_SEND_TT}.
         """
-        traceToken = controlMessage[2]
         return self.operation_send(proto, controlMessage, message)
 
 
@@ -179,7 +175,6 @@ class MessageHandler(object):
         """
         Manage C{CTRLMSGOP_EXIT_TT}.
         """
-        traceToken = controlMessage[2]
         return self.operation_exit(proto, controlMessage, message)
 
 
@@ -187,7 +182,6 @@ class MessageHandler(object):
         """
         Manage C{CTRLMSGOP_REG_SEND_TT}.
         """
-        traceToken = controlMessage[3]
         return self.operation_reg_send(proto, controlMessage, message)
 
 
@@ -195,7 +189,6 @@ class MessageHandler(object):
         """
         Manage C{CTRLMSGOP_EXIT2_TT}.
         """
-        traceToken = controlMessage[2]
         return self.operation_exit2(proto, controlMessage, message)
 
 
@@ -234,8 +227,8 @@ class MessageHandler(object):
         Handle C{REG_SEND} reply.
         """
         # Unpacked, but unused for now
-        fromPid = controlMessage[0]
-        cookie = controlMessage[1]
+        #fromPid = controlMessage[0]
+        #cookie = controlMessage[1]
         toName = controlMessage[2]
         if toName.text in self._namedProcesses:
            self._namedProcesses[toName.text](proto, controlMessage, message)
@@ -695,7 +688,7 @@ class ProcessBase(object):
                 self.nodeName, self.cookie, host)
         oneShotEpmd = self.oneShotEpmds[host]
         return oneShotEpmd.names()
-        
+
 
     def register(self, name):
         """

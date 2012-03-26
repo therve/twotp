@@ -439,7 +439,6 @@ class MessageHandlerTestCase(TestCase):
         """
         Test L{MessageHandler.createPid}.
         """
-        proto = TestableNodeProtocol()
         pid = self.handler.createPid()
         self.assertEquals(pid.nodeId, 0)
         self.assertEquals(pid.serial, 0)
@@ -453,7 +452,6 @@ class MessageHandlerTestCase(TestCase):
         Check that L{MessageHandler.createPid} increments the serial number
         used for pid when the nodeId reaches the 0x7fff value.
         """
-        proto = TestableNodeProtocol()
         self.handler.pidCount = 0x7fff
         pid = self.handler.createPid()
         self.assertEquals(pid.nodeId, 32767)
@@ -470,7 +468,6 @@ class MessageHandlerTestCase(TestCase):
         when the nodeId reaches the 0x7fff value and the serial value reaches
         the 0x1fff value.
         """
-        proto = TestableNodeProtocol()
         self.handler.pidCount = 0x7fff
         self.handler.serial = 0x1fff
         pid = self.handler.createPid()
@@ -507,7 +504,6 @@ class MessageHandlerTestCase(TestCase):
         """
         Test L{MessageHandler.createPort}.
         """
-        proto = TestableNodeProtocol()
         port = self.handler.createPort()
         self.assertEquals(port.portId, 0)
 
@@ -520,7 +516,6 @@ class MessageHandlerTestCase(TestCase):
         L{MessageHandler.createPort} resets the port value to 0 when it reaches
         the 0xfffffff value.
         """
-        proto = TestableNodeProtocol()
         self.handler.portCount = 0xfffffff
         port = self.handler.createPort()
         self.assertEquals(port.portId, 268435455)
@@ -611,7 +606,6 @@ class ProcessTestCase(TestCase):
         Once done, it set the calls handler of the server factory to the
         process calls handler.
         """
-        holder = object()
         d = self.process.listen()
         self.process.persistentEpmd._connectDeferred.callback(2)
         def check(ignored):

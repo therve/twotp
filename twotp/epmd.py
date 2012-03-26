@@ -116,7 +116,7 @@ class PortMapperProtocol(Protocol):
         """
         Manage C{NAMES_RESP}.
         """
-        epmdPortNumber = theParser.parseInt(data[:4])
+        #epmdPortNumber = theParser.parseInt(data[:4])
         result = []
         for l in data[4:].splitlines():
             infos = l.split()
@@ -130,12 +130,12 @@ class PortMapperProtocol(Protocol):
         """
         Manage C{DUMP_RESP}.
         """
-        epmdPortNumber = theParser.parseInt(data[:4])
+        #epmdPortNumber = theParser.parseInt(data[:4])
         result = {"active": [], "old": []}
         for l in data[4:].split('\n\x00')[:-1]:
             infos = l.split()
-            # Active: "active name     <%(name)s> at port %(port)s, fd = %(fd)s\n"
-            # Old: "old/unused name, <%(name)s> at port %(port)s, fd = %(fd)s\n"
+            # Active: active name     <%(name)s> at port %(port)s, fd = %(fd)s
+            # Old: old/unused name, <%(name)s> at port %(port)s, fd = %(fd)s
             if infos[0] == 'active':
                 name = infos[2][1:-1]
                 extractedInfos = (name, int(infos[5][:-1]), int(infos[8]))
