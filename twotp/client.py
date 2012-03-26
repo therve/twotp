@@ -12,7 +12,8 @@ from twisted.python import log
 from twisted.internet.protocol import ClientFactory
 from twisted.internet.defer import Deferred
 
-from twotp.node import NodeProtocol, NodeBaseFactory, InvalidIdentifier, InvalidDigest
+from twotp.node import (
+    NodeProtocol, NodeBaseFactory, InvalidIdentifier, InvalidDigest)
 from twotp.packer import thePacker
 
 
@@ -49,7 +50,7 @@ class NodeClientProtocol(NodeProtocol):
         packetLen = self.factory.handler._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
-        packetData = data[2:packetLen+2]
+        packetData = data[2:packetLen + 2]
         if packetData[0] != "s":
             self.notifyFailure(
                 InvalidIdentifier("Got %r instead of 's'" % (packetData[0],)))
@@ -77,7 +78,7 @@ class NodeClientProtocol(NodeProtocol):
         packetLen = self.factory.handler._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
-        packetData = data[2:packetLen+2]
+        packetData = data[2:packetLen + 2]
         if packetData[0] != "n":
             self.notifyFailure(
                 InvalidIdentifier("Got %r instead of 'n'" % (packetData[0],)))
@@ -100,7 +101,7 @@ class NodeClientProtocol(NodeProtocol):
         packetLen = self.factory.handler._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
-        packetData = data[2:packetLen+2]
+        packetData = data[2:packetLen + 2]
         if packetData[0] != "a":
             self.notifyFailure(
                 InvalidIdentifier("Got %r instead of 'a'" % (packetData[0],)))
@@ -114,7 +115,8 @@ class NodeClientProtocol(NodeProtocol):
             return ""
         self.state = "connected"
         if self.factory._connectDeferred is not None:
-            d, self.factory._connectDeferred = self.factory._connectDeferred, None
+            d, self.factory._connectDeferred = (self.factory._connectDeferred,
+                                                None)
             d.callback(self)
         self.startTimer()
         return data[packetLen + 2:]

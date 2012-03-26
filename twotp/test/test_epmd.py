@@ -86,9 +86,7 @@ class PortMapperProtocolTestCase(TestCase):
         Test an successful port2 response.
         """
         d = Deferred()
-        def cb(res):
-            self.assertEquals(res, Node(9, 77, 1, (5, 5), "bar", ""))
-        d.addCallback(cb)
+        d.addCallback(self.assertEquals, Node(9, 77, 1, (5, 5), "bar", ""))
         self.proto.deferred = d
         self.proto.dataReceived("w")
         self.proto.dataReceived("\x00")
@@ -102,9 +100,8 @@ class PortMapperProtocolTestCase(TestCase):
         Test an successful port2 response, with extra data.
         """
         d = Deferred()
-        def cb(res):
-            self.assertEquals(res, Node(9, 77, 1, (5, 5), "bar", "spam"))
-        d.addCallback(cb)
+        d.addCallback(
+            self.assertEquals, Node(9, 77, 1, (5, 5), "bar", "spam"))
         self.proto.deferred = d
         self.proto.dataReceived(
             "w\x00\x00\x09M\x01\x00\x05\x00\x05\x00\x03bar\x00\x04spam")
@@ -139,9 +136,7 @@ class PortMapperProtocolTestCase(TestCase):
         Test successful names request and response.
         """
         d = Deferred()
-        def cb(res):
-            self.assertEquals(res, [("foo", 1234), ("egg", 4321)])
-        d.addCallback(cb)
+        d.addCallback(self.assertEquals, [("foo", 1234), ("egg", 4321)])
         self.proto.namesRequest(d)
         self.assertEquals(self.transport.value(), "\x00\x01n")
         self.proto.dataReceived("\x00\x00\x00\x01")
@@ -156,10 +151,9 @@ class PortMapperProtocolTestCase(TestCase):
         Test successful dump request and response.
         """
         d = Deferred()
-        def cb(res):
-            self.assertEquals(res, {"active": [("foo", 1234, 3)],
-                                    "old": [("egg", 4321, 2)]})
-        d.addCallback(cb)
+        d.addCallback(
+            self.assertEquals, {"active": [("foo", 1234, 3)],
+                                "old": [("egg", 4321, 2)]})
         self.proto.dumpRequest(d)
         self.assertEquals(self.transport.value(), "\x00\x01d")
         self.proto.dataReceived("\x00\x00\x00\x01")
@@ -177,9 +171,7 @@ class PortMapperProtocolTestCase(TestCase):
         Test successful kill request and response.
         """
         d = Deferred()
-        def cb(res):
-            self.assertEquals(res, "OK")
-        d.addCallback(cb)
+        d.addCallback(self.assertEquals, "OK")
         self.proto.killRequest(d)
         self.assertEquals(self.transport.value(), "\x00\x01k")
         self.proto.dataReceived("OK")
@@ -298,8 +290,10 @@ class PersistentPortMapperFactoryTestCase(TestCase):
         self.assertEquals(self.factory.connect[0][:2], ("127.0.0.1", 4369))
         self.assertIdentical(self.factory.connect[0][2], self.factory)
         self.factory._connectDeferred.callback(2)
+
         def cb(ign):
             self.assertEquals(self.factory.listen[0][1].creation, 2)
+
         return d.addCallback(cb)
 
 
@@ -472,4 +466,3 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         proto.dataReceived("OK")
         transport.loseConnection()
         return d.addCallback(self.assertEquals, "OK")
-

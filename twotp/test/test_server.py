@@ -108,7 +108,8 @@ class NodeServerProtocolTestCase(TestCase):
         """
         self.proto.challenge = self.proto.generateChallenge()
         remainData = self.proto.handle_challenge(
-            "\x00\x15r\x00\x00\x00\x05I\x14\xa6U'\xe0\x89\x14<\x1a\xdc\xf9(G&!")
+            "\x00\x15r\x00\x00\x00\x05I\x14\xa6U'\xe0\x89\x14<\x1a\xdc\xf9"
+            "(G&!")
         self.assertEquals(remainData, "")
         self.assertEquals(self.proto.state, "connected")
         self.assertEquals(self.transport.value(),
@@ -136,7 +137,8 @@ class NodeServerProtocolTestCase(TestCase):
         """
         self.proto.challenge = self.proto.generateChallenge()
         self.assertRaises(ValueError, self.proto.handle_challenge,
-            "\x00\x15R\x00\x00\x00\x05SkH\x1f\xd8Z\xf0\"\xe2\xf5\xd6x2\xe9!\xe6")
+            "\x00\x15R\x00\x00\x00\x05SkH\x1f\xd8Z\xf0\"\xe2\xf5\xd6x2\xe9!"
+            "\xe6")
 
 
     def test_challengeInvalidDigest(self):
@@ -145,7 +147,8 @@ class NodeServerProtocolTestCase(TestCase):
         """
         self.proto.challenge = self.proto.generateChallenge()
         self.assertRaises(ValueError, self.proto.handle_challenge,
-            "\x00\x15r\x00\x00\x00\x05SkH\x1f\xd8Z\xf1\"\xe2\xf5\xd6x2\xe9!\xe6")
+            "\x00\x15r\x00\x00\x00\x05SkH\x1f\xd8Z\xf1\"\xe2\xf5\xd6x2\xe9!"
+            "\xe6")
 
 
 
@@ -184,5 +187,6 @@ class NodeServerFactoryTestCase(TestCase):
         proto.dataReceived(
             "\x00\x0an\x00\x01\x00\x00\x00\x02foo")
         proto.dataReceived(
-            "\x00\x15r\x00\x00\x00\x05I\x14\xa6U'\xe0\x89\x14<\x1a\xdc\xf9(G&!")
+            "\x00\x15r\x00\x00\x00\x05I\x14\xa6U'\xe0\x89\x14<\x1a\xdc\xf9"
+            "(G&!")
         self.assertEquals(factory._nodeCache, {"foo": proto})

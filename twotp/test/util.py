@@ -17,8 +17,8 @@ class TestCase(TrialTestCase):
     if getattr(TrialTestCase, 'assertIsInstance', None is None):
         def failUnlessIsInstance(self, instance, classOrTuple):
             """
-            Assert that the given instance is of the given class or of one of the
-            given classes.
+            Assert that the given instance is of the given class or of one of
+            the given classes.
 
             @param instance: the object to test the type (first argument of the
                 C{isinstance} call).
@@ -28,7 +28,7 @@ class TestCase(TrialTestCase):
             @type classOrTuple: class, type, or tuple.
             """
             if not isinstance(instance, classOrTuple):
-                self.fail("%r is not an instance of %s" % (instance, classOrTuple))
+                self.fail("%r is not an instance of %s" %
+                          (instance, classOrTuple))
 
         assertIsInstance = failUnlessIsInstance
-

@@ -78,8 +78,8 @@ class Binary(Term):
         """
         Simple representation of the data.
         """
-        s =  "<%s at %s> with value %s" % (
-                self.__class__.__name__, hex(unsignedID(self)), self.value)
+        s = "<%s at %s> with value %s" % (self.__class__.__name__,
+                                          hex(unsignedID(self)), self.value)
         return s
 
 
@@ -114,9 +114,9 @@ class BitBinary(Term):
         """
         Simple representation of the data.
         """
-        s =  "<%s at %s> with data %s, bits %s" % (
-                self.__class__.__name__, hex(unsignedID(self)), self.data,
-                self.bits)
+        s = "<%s at %s> with data %s, bits %s" % (self.__class__.__name__,
+                                                  hex(unsignedID(self)),
+                                                  self.data, self.bits)
         return s
 
 
@@ -164,8 +164,8 @@ class Atom(Term):
         """
         Simple representation with the text.
         """
-        s =  "<%s at %s, text %r>" % (
-                self.__class__.__name__, hex(unsignedID(self)), self.text)
+        s = "<%s at %s, text %r>" % (self.__class__.__name__,
+                                     hex(unsignedID(self)), self.text)
         return s
 
 
@@ -243,9 +243,9 @@ class Pid(Term):
         """
         Simple representation with all attributes.
         """
-        s =  "<%s at %s, named %r, id %s, serial %s, creation %s>" % (
-                self.__class__.__name__, hex(unsignedID(self)), self.nodeName,
-                self.nodeId, self.serial, self.creation)
+        s = "<%s at %s, named %r, id %s, serial %s, creation %s>" % (
+            self.__class__.__name__, hex(unsignedID(self)), self.nodeName,
+            self.nodeId, self.serial, self.creation)
         return s
 
 
@@ -350,9 +350,9 @@ class Reference(Term):
         """
         Simple representation with all attributes.
         """
-        s =  "<%s at %s> named %s, creation %s, ids %r" % (
-                self.__class__.__name__, hex(unsignedID(self)), self.nodeName,
-                self.creation, self.refIds)
+        s = "<%s at %s> named %s, creation %s, ids %r" % (
+            self.__class__.__name__, hex(unsignedID(self)), self.nodeName,
+            self.creation, self.refIds)
         return s
 
 
@@ -360,7 +360,8 @@ class Reference(Term):
         """
         Build a custom hash.
         """
-        return hash((self.__class__, self.nodeName, self.creation, self.refIds))
+        return hash((self.__class__, self.nodeName, self.creation,
+                     self.refIds))
 
 
 
@@ -392,9 +393,9 @@ class Port(Term):
         """
         Simple representation with all attributes.
         """
-        s =  "<%s at %s> named %s, creation %s, id %r" % (
-                self.__class__.__name__, hex(unsignedID(self)), self.nodeName,
-                self.creation, self.portId)
+        s = "<%s at %s> named %s, creation %s, id %r" % (
+            self.__class__.__name__, hex(unsignedID(self)), self.nodeName,
+            self.creation, self.portId)
         return s
 
 
@@ -430,10 +431,10 @@ class Fun(Term):
         """
         Simple representation with all attributes.
         """
-        s =  ("<%s at %s> with pid %s, module %s, index %s , uniq %s, "
-              "freeVars %s" % (
-                self.__class__.__name__, hex(unsignedID(self)), self.pid,
-                self.module, self.index, self.uniq, self.freeVars))
+        s = ("<%s at %s> with pid %s, module %s, index %s , uniq %s, "
+             "freeVars %s" % (
+            self.__class__.__name__, hex(unsignedID(self)), self.pid,
+            self.module, self.index, self.uniq, self.freeVars))
         return s
 
 
@@ -514,9 +515,9 @@ class Export(Term):
         """
         Simple representation with all attributes.
         """
-        s =  ("<%s at %s> function %s in module %s, arity %s" % (
-                self.__class__.__name__, hex(unsignedID(self)), self.module,
-                self.function, self.arity))
+        s = ("<%s at %s> function %s in module %s, arity %s" % (
+            self.__class__.__name__, hex(unsignedID(self)), self.module,
+            self.function, self.arity))
         return s
 
 

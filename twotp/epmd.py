@@ -199,7 +199,7 @@ class PortMapperProtocol(Protocol):
         """
         log.msg("Connection made with EPMD")
         if self.initialAction is not None:
-           getattr(self, self.initialAction[0])(*self.initialAction[1:])
+            getattr(self, self.initialAction[0])(*self.initialAction[1:])
 
 
     def send(self, data):

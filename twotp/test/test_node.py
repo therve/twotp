@@ -128,8 +128,10 @@ class NodeProtocolTestCase(TestCase):
         If no message are sent for a period of time, an empty mesage is sent.
         """
         called = []
+
         def send(data):
             called.append(data)
+
         self.proto.send = send
         self.proto.startTimer()
         self.assertEquals(called, [])
@@ -188,8 +190,10 @@ class NodeProtocolTestCase(TestCase):
         """
         self.proto.state = "connected"
         calls = []
+
         def cb(proto, result):
             calls.append((proto, result))
+
         self.factory.handler.passThroughMessage = cb
         self.proto.dataReceived("\x00\x00\x00\x06p\x83h\x01a\x01")
         self.assertEquals(calls, [(self.proto, (1,))])
@@ -374,7 +378,8 @@ class MessageHandlerTestCase(TestCase):
         srcPid = Pid(Atom("foo@bar"), 0, 0, 0)
         destPid = Pid(Atom("spam@egg"), 0, 0, 0)
         ref = Reference(Atom("spam@egg"), 0, 0)
-        ctrlMessage = (self.handler.CTRLMSGOP_DEMONITOR_P, srcPid, destPid, ref)
+        ctrlMessage = (self.handler.CTRLMSGOP_DEMONITOR_P, srcPid, destPid,
+                       ref)
         self.handler.passThroughMessage(None, ctrlMessage, None)
         self.assertEquals(destPid._remoteMonitors, set([]))
 
@@ -390,7 +395,8 @@ class MessageHandlerTestCase(TestCase):
         # Sanity check
         self.assertNotEquals(destPid._remoteMonitors, set([]))
 
-        ctrlMessage = (self.handler.CTRLMSGOP_DEMONITOR_P, srcPid, destPid, ref)
+        ctrlMessage = (self.handler.CTRLMSGOP_DEMONITOR_P, srcPid, destPid,
+                       ref)
         self.handler.passThroughMessage(None, ctrlMessage, None)
         self.assertEquals(destPid._remoteMonitors, set([]))
 
@@ -608,10 +614,12 @@ class ProcessTestCase(TestCase):
         """
         d = self.process.listen()
         self.process.persistentEpmd._connectDeferred.callback(2)
+
         def check(ignored):
             factory = self.process.serverFactory
             self.assertIsInstance(factory, NodeServerFactory)
             self.assertIdentical(factory.handler, self.process.handler)
+
         return d.addCallback(check)
 
 
@@ -641,9 +649,11 @@ class ProcessTestCase(TestCase):
         clientProto = TestableNodeProtocol()
         clientProto.factory = factory
         factory._connectDeferred.callback(clientProto)
+
         def check(proto):
             self.assertIdentical(proto, clientProto)
             self.assertIdentical(factory.handler, self.process.handler)
+
         return d.addCallback(check)
 
 

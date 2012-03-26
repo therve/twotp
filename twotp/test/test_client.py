@@ -171,8 +171,10 @@ class NodeClientProtocolTestCase(TestCase):
         remainData = self.proto.handle_challenge(
             "\x00\x12n\x00\x01\x00\x00\x00\x02\x00\x00\x00\x01foo@bar")
         self.assertEquals(remainData, "")
-        self.assertEquals(self.transport.value(),
-            "\x00\x15r\x00\x00\x00\x02\xd2\xb0'\xc0*\xfd\xebl\xa7yaM\xff#\x08\xce")
+        self.assertEquals(
+            self.transport.value(),
+            "\x00\x15r\x00\x00\x00\x02\xd2\xb0'\xc0*\xfd\xebl"
+            "\xa7yaM\xff#\x08\xce")
         self.assertEquals(self.proto.peerName, "foo@bar")
         self.assertEquals(self.proto.peerVersion, 1)
         self.assertEquals(self.proto.peerFlags, 2)
@@ -201,8 +203,10 @@ class NodeClientProtocolTestCase(TestCase):
         self.proto.dataReceived("\x12")
         self.proto.dataReceived("n\x00\x01\x00\x00\x00\x02")
         self.proto.dataReceived("\x00\x00\x00\x01foo@bar")
-        self.assertEquals(self.transport.value(),
-            "\x00\x15r\x00\x00\x00\x02\xd2\xb0'\xc0*\xfd\xebl\xa7yaM\xff#\x08\xce")
+        self.assertEquals(
+            self.transport.value(),
+            "\x00\x15r\x00\x00\x00\x02\xd2\xb0'\xc0*\xfd\xebl\xa7yaM\xff#"
+            "\x08\xce")
         self.assertEquals(self.proto.peerName, "foo@bar")
         self.assertEquals(self.proto.peerVersion, 1)
         self.assertEquals(self.proto.peerFlags, 2)
@@ -289,9 +293,6 @@ class NodeClientFactoryTestCase(TestCase):
         """
         d = Deferred()
         factory = NodeClientFactory("foo@bar", "cookie", d.callback)
-        def cb(res):
-            self.assertEquals(res, factory)
-        d.addCallback(cb)
+        d.addCallback(self.assertEquals, factory)
         factory.clientConnectionLost(None, None)
         return d
-

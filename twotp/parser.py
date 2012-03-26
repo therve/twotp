@@ -6,7 +6,8 @@
 Parsing of data received from erlang node or epmd.
 """
 
-import struct, zlib
+import struct
+import zlib
 
 from twotp.term import Integer, List, Tuple, Float, Atom, Reference
 from twotp.term import Port, Pid, Binary, Fun, NewFun, Export, BitBinary

@@ -69,8 +69,8 @@ class IntegrationTestCase(TestCase):
         self.cookie = "twotp-cookie"
         self.erlangName = "twotp-erlang-test"
         self.nodeName = buildNodeName("twotp-python-test")
-        args = [
-            executables[0], "-setcookie", self.cookie, "-sname", self.erlangName]
+        args = [executables[0], "-setcookie", self.cookie, "-sname",
+                self.erlangName]
         self.process = reactor.spawnProcess(
             self.protocol, executables[0], args, env=dict(os.environ))
         # We wait for input to be available

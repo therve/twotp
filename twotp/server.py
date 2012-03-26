@@ -12,7 +12,8 @@ from twisted.internet.protocol import ServerFactory
 from twisted.internet.defer import Deferred
 from twisted.python import log
 
-from twotp.node import NodeProtocol, NodeBaseFactory, InvalidIdentifier, InvalidDigest
+from twotp.node import (
+    NodeProtocol, NodeBaseFactory, InvalidIdentifier, InvalidDigest)
 
 
 
@@ -41,7 +42,7 @@ class NodeServerProtocol(NodeProtocol):
         packetLen = parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
-        packetData = data[2:packetLen+2]
+        packetData = data[2:packetLen + 2]
         if packetData[0] != "n":
             raise InvalidIdentifier("Got %r instead of 'n'" % (packetData[0],))
         self.peerVersion = parser.parseShort(packetData[1:3])
@@ -62,7 +63,7 @@ class NodeServerProtocol(NodeProtocol):
         packetLen = self.factory.handler._parser.parseShort(data[0:2])
         if len(data) < packetLen + 2:
             return data
-        packetData = data[2:packetLen+2]
+        packetData = data[2:packetLen + 2]
         if packetData[0] != "r":
             raise InvalidIdentifier("Got %r instead of 'r'" % (packetData[0],))
         peerChallenge = self.factory.handler._parser.parseInt(packetData[1:5])

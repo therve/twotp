@@ -6,7 +6,8 @@
 Build data for an erlang node.
 """
 
-import struct, zlib
+import struct
+import zlib
 
 from twotp.term import ConstantHolder, Atom
 
@@ -78,8 +79,9 @@ class Packer(ConstantHolder):
         Pack an integer.
         """
         if 0 <= term < self.MAX_CHAR:
-            return self.packChar(self.MAGIC_SMALL_INTEGER) + self.packChar(term)
-        elif -2**31 <= term < 2**31:
+            return (self.packChar(self.MAGIC_SMALL_INTEGER) +
+                    self.packChar(term))
+        elif -2 ** 31 <= term < 2 ** 31:
             return self.packChar(self.MAGIC_INTEGER) + self.packInt(term)
         else:
             sign = int(term < 0)
@@ -120,7 +122,8 @@ class Packer(ConstantHolder):
         """
         Pack a new float.
         """
-        return self.packChar(self.MAGIC_NEW_FLOAT) + struct.pack("!d", term.value)
+        return (self.packChar(self.MAGIC_NEW_FLOAT) +
+                struct.pack("!d", term.value))
 
 
     def pack_binary(self, term):
@@ -150,14 +153,16 @@ class Packer(ConstantHolder):
         nodeId = self._pack_id(term.nodeId, 28)
         serial = self.packInt(term.serial)
         creation = self._pack_creation(term.creation)
-        return self.packChar(self.MAGIC_PID) + node + nodeId + serial + creation
+        return (self.packChar(self.MAGIC_PID) + node + nodeId + serial +
+                creation)
 
 
     def pack_atom(self, term):
         """
         Pack an Atom term.
         """
-        return self.packChar(self.MAGIC_ATOM) + self.packShort(len(term.text)) + term.text
+        return (self.packChar(self.MAGIC_ATOM) +
+                self.packShort(len(term.text)) + term.text)
 
 
     def pack_reference(self, term):
@@ -227,8 +232,8 @@ class Packer(ConstantHolder):
         # keys in the content are placed in a particular order, specified by
         # the phash function. For now, it just put the keys in Python order.
         content = tuple([[list(i)] for i in term.items()])
-        d = (Atom('dict'), size, slot, slot, slot/2,
-            expand, contract, empty, (content + emptyRemain,))
+        d = (Atom('dict'), size, slot, slot, slot / 2,
+             expand, contract, empty, (content + emptyRemain,))
         return self.packOneTerm(d)
 
 
@@ -250,8 +255,8 @@ class Packer(ConstantHolder):
         # values in the content are placed in a particular order, specified by
         # the phash function. For now, it just put the values in Python order.
         content = tuple([[i] for i in term])
-        d = (Atom('set'), size, slot, slot, slot/2,
-            expand, contract, empty, (content + emptyRemain,))
+        d = (Atom('set'), size, slot, slot, slot / 2,
+             expand, contract, empty, (content + emptyRemain,))
         return self.packOneTerm(d)
 
 
@@ -272,7 +277,8 @@ class Packer(ConstantHolder):
         else:
             if self._check_string(term) and len(term) < self.MAX_SHORT:
                 term = ''.join([chr(i) for i in term])
-                return self.packChar(self.MAGIC_STRING) + self.packShort(len(term)) + term
+                return (self.packChar(self.MAGIC_STRING) +
+                        self.packShort(len(term)) + term)
 
             packetData = self.packChar(self.MAGIC_LIST) + self.packInt(length)
             for item in term:
@@ -309,4 +315,3 @@ class Packer(ConstantHolder):
 thePacker = Packer()
 
 termToBinary = thePacker.termToBinary
-

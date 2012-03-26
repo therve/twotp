@@ -6,7 +6,9 @@
 Basic node protocol and node message handler classes.
 """
 
-import os, time, random
+import os
+import time
+import random
 
 from hashlib import md5
 
@@ -76,7 +78,8 @@ class MessageHandler(object):
     DISTR_FLAG_EXTENDEDPIDSPORTS = 256
 
     distrVersion = 5
-    distrFlags = DISTR_FLAG_EXTENDEDREFERENCES|DISTR_FLAG_EXTENDEDPIDSPORTS|DISTR_FLAG_DISTMONITOR
+    distrFlags = (DISTR_FLAG_EXTENDEDREFERENCES |
+                  DISTR_FLAG_EXTENDEDPIDSPORTS | DISTR_FLAG_DISTMONITOR)
 
     refIds = None
     pidCount = 0
@@ -231,7 +234,7 @@ class MessageHandler(object):
         #cookie = controlMessage[1]
         toName = controlMessage[2]
         if toName.text in self._namedProcesses:
-           self._namedProcesses[toName.text](proto, controlMessage, message)
+            self._namedProcesses[toName.text](proto, controlMessage, message)
         else:
             log.msg("Send to unknown process name %r" % (toName.text,))
 
@@ -329,8 +332,7 @@ class MessageHandler(object):
         """
         Create an unique erlang reference.
         """
-        r =  Reference(Atom(self.nodeName), self.refIds,
-                       self.creation)
+        r = Reference(Atom(self.nodeName), self.refIds, self.creation)
         self.refIds[0] += 1
         if self.refIds[0] > 0x3ffff:
             self.refIds[0] = 0
@@ -345,8 +347,7 @@ class MessageHandler(object):
         """
         Create an unique Pid object.
         """
-        p = Pid(Atom(self.nodeName), self.pidCount, self.serial,
-            self.creation)
+        p = Pid(Atom(self.nodeName), self.pidCount, self.serial, self.creation)
         self.pidCount += 1
         if self.pidCount > 0x7fff:
             self.pidCount = 0
@@ -654,9 +655,11 @@ class ProcessBase(object):
             raise RuntimeError("Already listening")
         self.persistentEpmd = self.persistentPortMapperClass(
             self.nodeName, self.cookie)
+
         def gotFactory(factory):
             self.serverFactory = factory
             factory.handler = self.handler
+
         return self.persistentEpmd.publish().addCallback(gotFactory)
 
 
@@ -668,9 +671,11 @@ class ProcessBase(object):
         if (self.serverFactory is not None and
             nodeName in self.serverFactory._nodeCache):
             return succeed(self.serverFactory._nodeCache[nodeName])
+
         def sync(instance):
             instance.factory.handler = self.handler
             return instance
+
         host = nodeName.split("@", 1)[1]
         if not host in self.oneShotEpmds:
             self.oneShotEpmds[host] = self.oneShotPortMapperClass(
@@ -727,7 +732,7 @@ class ProcessBase(object):
 
             call = Tuple((Atom("call"), Atom(module), Atom(func), List(args),
                           Atom("user")))
-            rpc =  Tuple((pid, call))
+            rpc = Tuple((pid, call))
 
             self.handler.namedSend(instance, pid, Atom("rex"), rpc)
             return d
