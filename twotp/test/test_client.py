@@ -81,7 +81,8 @@ class NodeClientProtocolTestCase(TestCase):
         self.transport.protocol = self.proto
         self.clock = Clock()
         self.proto.callLater = self.clock.callLater
-        self.assertEquals(self.transport.value(),
+        self.assertEqual(
+            self.transport.value(),
             "\x00\x0fn\x00\x05\x00\x00\x01\x0cspam@egg")
         self.transport.clear()
 
@@ -91,12 +92,12 @@ class NodeClientProtocolTestCase(TestCase):
         Test an OK handshake received.
         """
         remainData = self.proto.handle_handshake("\x00\x03sok")
-        self.assertEquals(remainData, "")
-        self.assertEquals(self.proto.state, "challenge")
+        self.assertEqual(remainData, "")
+        self.assertEqual(self.proto.state, "challenge")
 
         remainData = self.proto.handle_handshake("\x00\x10sok_simultaneous")
-        self.assertEquals(remainData, "")
-        self.assertEquals(self.proto.state, "challenge")
+        self.assertEqual(remainData, "")
+        self.assertEqual(self.proto.state, "challenge")
 
 
     def test_handshakeFragmented(self):
@@ -106,7 +107,7 @@ class NodeClientProtocolTestCase(TestCase):
         self.proto.dataReceived("\x00")
         self.proto.dataReceived("\x03")
         self.proto.dataReceived("sok")
-        self.assertEquals(self.proto.state, "challenge")
+        self.assertEqual(self.proto.state, "challenge")
 
 
     def test_handshakeAlive(self):
@@ -114,9 +115,9 @@ class NodeClientProtocolTestCase(TestCase):
         Test an alive handshake received.
         """
         remainData = self.proto.handle_handshake("\x00\x06salive")
-        self.assertEquals(remainData, "")
-        self.assertEquals(self.proto.state, "challenge")
-        self.assertEquals(self.transport.value(), "\x00\x04true")
+        self.assertEqual(remainData, "")
+        self.assertEqual(self.proto.state, "challenge")
+        self.assertEqual(self.transport.value(), "\x00\x04true")
 
 
     def test_handshakeRefused(self):
@@ -125,7 +126,7 @@ class NodeClientProtocolTestCase(TestCase):
         """
         d = self.assertFailure(self.factory._connectDeferred, ValueError)
         remainData = self.proto.handle_handshake("\x00\x04snok")
-        self.assertEquals(remainData, "")
+        self.assertEqual(remainData, "")
         self.assertTrue(self.transport.closed)
         return d
 
@@ -136,7 +137,7 @@ class NodeClientProtocolTestCase(TestCase):
         """
         d = self.assertFailure(self.factory._connectDeferred, ValueError)
         remainData = self.proto.handle_handshake("\x00\x0csnot_allowed")
-        self.assertEquals(remainData, "")
+        self.assertEqual(remainData, "")
         self.assertTrue(self.transport.closed)
         return d
 
@@ -147,7 +148,7 @@ class NodeClientProtocolTestCase(TestCase):
         """
         d = self.assertFailure(self.factory._connectDeferred, ValueError)
         remainData = self.proto.handle_handshake("\x00\x04sfoo")
-        self.assertEquals(remainData, "")
+        self.assertEqual(remainData, "")
         self.assertTrue(self.transport.closed)
         return d
 
@@ -159,7 +160,7 @@ class NodeClientProtocolTestCase(TestCase):
         """
         d = self.assertFailure(self.factory._connectDeferred, ValueError)
         remainData = self.proto.handle_handshake("\x00\x03tok")
-        self.assertEquals(remainData, "")
+        self.assertEqual(remainData, "")
         self.assertTrue(self.transport.closed)
         return d
 
@@ -170,15 +171,15 @@ class NodeClientProtocolTestCase(TestCase):
         """
         remainData = self.proto.handle_challenge(
             "\x00\x12n\x00\x01\x00\x00\x00\x02\x00\x00\x00\x01foo@bar")
-        self.assertEquals(remainData, "")
-        self.assertEquals(
+        self.assertEqual(remainData, "")
+        self.assertEqual(
             self.transport.value(),
             "\x00\x15r\x00\x00\x00\x02\xd2\xb0'\xc0*\xfd\xebl"
             "\xa7yaM\xff#\x08\xce")
-        self.assertEquals(self.proto.peerName, "foo@bar")
-        self.assertEquals(self.proto.peerVersion, 1)
-        self.assertEquals(self.proto.peerFlags, 2)
-        self.assertEquals(self.proto.state, "challenge_ack")
+        self.assertEqual(self.proto.peerName, "foo@bar")
+        self.assertEqual(self.proto.peerVersion, 1)
+        self.assertEqual(self.proto.peerFlags, 2)
+        self.assertEqual(self.proto.state, "challenge_ack")
 
 
     def test_challengeWrongIdentifier(self):
@@ -188,8 +189,8 @@ class NodeClientProtocolTestCase(TestCase):
         d = self.assertFailure(self.factory._connectDeferred, ValueError)
         remainData = self.proto.handle_challenge(
             "\x00\x12z\x00\x01\x00\x00\x00\x02\x00\x00\x00\x01foo@bar")
-        self.assertEquals(remainData, "")
-        self.assertEquals(self.transport.value(), "")
+        self.assertEqual(remainData, "")
+        self.assertEqual(self.transport.value(), "")
         self.assertTrue(self.transport.closed)
         return d
 
@@ -203,15 +204,15 @@ class NodeClientProtocolTestCase(TestCase):
         self.proto.dataReceived("\x12")
         self.proto.dataReceived("n\x00\x01\x00\x00\x00\x02")
         self.proto.dataReceived("\x00\x00\x00\x01foo@bar")
-        self.assertEquals(
+        self.assertEqual(
             self.transport.value(),
             "\x00\x15r\x00\x00\x00\x02\xd2\xb0'\xc0*\xfd\xebl\xa7yaM\xff#"
             "\x08\xce")
-        self.assertEquals(self.proto.peerName, "foo@bar")
-        self.assertEquals(self.proto.peerVersion, 1)
-        self.assertEquals(self.proto.peerFlags, 2)
-        self.assertEquals(self.proto.state, "challenge_ack")
-        self.assertEquals(self.proto.challenge, 2)
+        self.assertEqual(self.proto.peerName, "foo@bar")
+        self.assertEqual(self.proto.peerVersion, 1)
+        self.assertEqual(self.proto.peerFlags, 2)
+        self.assertEqual(self.proto.state, "challenge_ack")
+        self.assertEqual(self.proto.challenge, 2)
 
 
     def test_challengeAck(self):
@@ -223,9 +224,9 @@ class NodeClientProtocolTestCase(TestCase):
             self.assertIdentical, self.proto)
         remainData = self.proto.handle_challenge_ack(
             "\x00\x11aSkH\x1f\xd8Z\xf0\"\xe2\xf5\xd6x2\xe9!\xe6")
-        self.assertEquals(remainData, "")
-        self.assertEquals(self.transport.value(), "")
-        self.assertEquals(self.proto.state, "connected")
+        self.assertEqual(remainData, "")
+        self.assertEqual(self.transport.value(), "")
+        self.assertEqual(self.proto.state, "connected")
         return self.factory._connectDeferred
 
 
@@ -237,7 +238,7 @@ class NodeClientProtocolTestCase(TestCase):
         self.proto.challenge = 4294967294
         remainData = self.proto.handle_challenge_ack(
             "\x00\x11ASkH\x1f\xd8Z\xf0\"\xe2\xf5\xd6x2\xe9!\xe6")
-        self.assertEquals(remainData, "")
+        self.assertEqual(remainData, "")
         self.assertTrue(self.transport.closed)
         return d
 
@@ -253,8 +254,8 @@ class NodeClientProtocolTestCase(TestCase):
         self.proto.dataReceived("\x00")
         self.proto.dataReceived("\x11aSkH\x1f")
         self.proto.dataReceived("\xd8Z\xf0\"\xe2\xf5\xd6x2\xe9!\xe6")
-        self.assertEquals(self.transport.value(), "")
-        self.assertEquals(self.proto.state, "connected")
+        self.assertEqual(self.transport.value(), "")
+        self.assertEqual(self.proto.state, "connected")
         return self.factory._connectDeferred
 
 
@@ -266,7 +267,7 @@ class NodeClientProtocolTestCase(TestCase):
         self.proto.challenge = 4294967294
         remainData = self.proto.handle_challenge_ack(
             "\x00\x11aSkH\x1f\xd8Z\xf0\"\xe2\xf5\xd6x2\xe9!\xe5")
-        self.assertEquals(remainData, "")
+        self.assertEqual(remainData, "")
         self.assertTrue(self.transport.closed)
         return d
 
@@ -293,6 +294,6 @@ class NodeClientFactoryTestCase(TestCase):
         """
         d = Deferred()
         factory = NodeClientFactory("foo@bar", "cookie", d.callback)
-        d.addCallback(self.assertEquals, factory)
+        d.addCallback(self.assertEqual, factory)
         factory.clientConnectionLost(None, None)
         return d

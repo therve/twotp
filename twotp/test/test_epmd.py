@@ -53,7 +53,7 @@ class PortMapperProtocolTestCase(TestCase):
         Test an successful alive2 response.
         """
         def cb(res):
-            self.assertEquals(res, 1)
+            self.assertEqual(res, 1)
         self.proto.factory._connectDeferred.addCallback(cb)
         self.proto.dataReceived("y")
         self.proto.dataReceived("\x00")
@@ -77,7 +77,8 @@ class PortMapperProtocolTestCase(TestCase):
         Test data sent by an alive2 request.
         """
         self.proto.alive2Request(1234, 77, (1, 2), "foo@bar")
-        self.assertEquals(self.transport.value(),
+        self.assertEqual(
+            self.transport.value(),
             "\x00\x14x\x04\xd2M\x00\x00\x01\x00\x02\x00\x07foo@bar\x00\x00")
 
 
@@ -86,12 +87,12 @@ class PortMapperProtocolTestCase(TestCase):
         Test an successful port2 response.
         """
         d = Deferred()
-        d.addCallback(self.assertEquals, Node(9, 77, 1, (5, 5), "bar", ""))
+        d.addCallback(self.assertEqual, Node(9, 77, 1, (5, 5), "bar", ""))
         self.proto.deferred = d
         self.proto.dataReceived("w")
         self.proto.dataReceived("\x00")
         self.proto.dataReceived("\x00\x09M\x01\x00\x05\x00\x05\x00\x03bar\x00")
-        self.assertEquals(self.proto.received, "")
+        self.assertEqual(self.proto.received, "")
         return d
 
 
@@ -101,11 +102,11 @@ class PortMapperProtocolTestCase(TestCase):
         """
         d = Deferred()
         d.addCallback(
-            self.assertEquals, Node(9, 77, 1, (5, 5), "bar", "spam"))
+            self.assertEqual, Node(9, 77, 1, (5, 5), "bar", "spam"))
         self.proto.deferred = d
         self.proto.dataReceived(
             "w\x00\x00\x09M\x01\x00\x05\x00\x05\x00\x03bar\x00\x04spam")
-        self.assertEquals(self.proto.received, "")
+        self.assertEqual(self.proto.received, "")
         return d
 
 
@@ -117,7 +118,7 @@ class PortMapperProtocolTestCase(TestCase):
         d = Deferred()
         self.proto.deferred = d
         self.proto.dataReceived("w\x01")
-        self.assertEquals(self.proto.received, "")
+        self.assertEqual(self.proto.received, "")
         return self.assertFailure(d, NodeNotFound)
 
 
@@ -127,8 +128,8 @@ class PortMapperProtocolTestCase(TestCase):
         """
         d = Deferred()
         self.proto.portPlease2Request(d, "egg@spam")
-        self.assertEquals(self.transport.value(), "\x00\tzegg@spam")
-        self.assertEquals(self.proto.deferred, d)
+        self.assertEqual(self.transport.value(), "\x00\tzegg@spam")
+        self.assertEqual(self.proto.deferred, d)
 
 
     def test_names(self):
@@ -136,9 +137,9 @@ class PortMapperProtocolTestCase(TestCase):
         Test successful names request and response.
         """
         d = Deferred()
-        d.addCallback(self.assertEquals, [("foo", 1234), ("egg", 4321)])
+        d.addCallback(self.assertEqual, [("foo", 1234), ("egg", 4321)])
         self.proto.namesRequest(d)
-        self.assertEquals(self.transport.value(), "\x00\x01n")
+        self.assertEqual(self.transport.value(), "\x00\x01n")
         self.proto.dataReceived("\x00\x00\x00\x01")
         self.proto.dataReceived("name %s at port %s\n" % ("foo", 1234))
         self.proto.dataReceived("name %s at port %s\n" % ("egg", 4321))
@@ -152,10 +153,10 @@ class PortMapperProtocolTestCase(TestCase):
         """
         d = Deferred()
         d.addCallback(
-            self.assertEquals, {"active": [("foo", 1234, 3)],
-                                "old": [("egg", 4321, 2)]})
+            self.assertEqual, {"active": [("foo", 1234, 3)],
+                               "old": [("egg", 4321, 2)]})
         self.proto.dumpRequest(d)
-        self.assertEquals(self.transport.value(), "\x00\x01d")
+        self.assertEqual(self.transport.value(), "\x00\x01d")
         self.proto.dataReceived("\x00\x00\x00\x01")
         self.proto.dataReceived(
             "active name    <%s> at port %s, fd = %s\n\x00" % ("foo", 1234, 3))
@@ -171,9 +172,9 @@ class PortMapperProtocolTestCase(TestCase):
         Test successful kill request and response.
         """
         d = Deferred()
-        d.addCallback(self.assertEquals, "OK")
+        d.addCallback(self.assertEqual, "OK")
         self.proto.killRequest(d)
-        self.assertEquals(self.transport.value(), "\x00\x01k")
+        self.assertEqual(self.transport.value(), "\x00\x01k")
         self.proto.dataReceived("OK")
         self.transport.loseConnection()
         return d
@@ -185,7 +186,7 @@ class PortMapperProtocolTestCase(TestCase):
         """
         d = Deferred()
         self.proto.killRequest(d)
-        self.assertEquals(self.transport.value(), "\x00\x01k")
+        self.assertEqual(self.transport.value(), "\x00\x01k")
         self.proto.dataReceived("Wrong")
         self.transport.loseConnection()
         return self.assertFailure(d, ValueError)
@@ -208,7 +209,7 @@ class PortMapperProtocolTestCase(TestCase):
         """
         self.proto.dataReceived("Wrong")
         errors = self.flushLoggedErrors()
-        self.assertEquals(len(errors), 1)
+        self.assertEqual(len(errors), 1)
         errors[0].trap(RuntimeError)
 
 
@@ -230,8 +231,8 @@ class DummyPort(object):
         """
         Return a fake host.
         """
-        return address.IPv4Address("TCP",
-                *(("127.0.0.1", self.portNumber) + ("INET",)))
+        return address.IPv4Address(
+            "TCP", *(("127.0.0.1", self.portNumber) + ("INET",)))
 
 
 
@@ -284,15 +285,15 @@ class PersistentPortMapperFactoryTestCase(TestCase):
         Test publish: this should create a server, and connect to the EPMD.
         """
         d = self.factory.publish()
-        self.assertEquals(self.factory.listen[0][0], 0)
+        self.assertEqual(self.factory.listen[0][0], 0)
         self.assertIsInstance(self.factory.listen[0][1],
                               self.factory.nodeFactoryClass)
-        self.assertEquals(self.factory.connect[0][:2], ("127.0.0.1", 4369))
+        self.assertEqual(self.factory.connect[0][:2], ("127.0.0.1", 4369))
         self.assertIdentical(self.factory.connect[0][2], self.factory)
         self.factory._connectDeferred.callback(2)
 
         def cb(ign):
-            self.assertEquals(self.factory.listen[0][1].creation, 2)
+            self.assertEqual(self.factory.listen[0][1].creation, 2)
 
         return d.addCallback(cb)
 
@@ -306,7 +307,8 @@ class PersistentPortMapperFactoryTestCase(TestCase):
         proto = self.factory.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
-        self.assertEquals(transport.value(),
+        self.assertEqual(
+            transport.value(),
             "\x00\x10x\x04\xd2H\x00\x00\x05\x00\x05\x00\x03foo\x00\x00")
 
 
@@ -356,12 +358,12 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         proto = self.factory.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
-        self.assertEquals(transport.value(), "\x00\tzegg@spam")
-        self.assertEquals(self.factory.connect,
-            [("127.0.0.1", 4369, self.factory)])
+        self.assertEqual(transport.value(), "\x00\tzegg@spam")
+        self.assertEqual(
+            self.factory.connect, [("127.0.0.1", 4369, self.factory)])
         proto.dataReceived(
-                "w\x00\x00\x09M\x01\x00\x05\x00\x05\x00\x03bar\x00")
-        return d.addCallback(self.assertEquals,
+            "w\x00\x00\x09M\x01\x00\x05\x00\x05\x00\x03bar\x00")
+        return d.addCallback(self.assertEqual,
                              Node(9, 77, 1, (5, 5), "bar", ""))
 
 
@@ -378,14 +380,15 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         proto = self.factory.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
-        self.assertEquals(transport.value(), "\x00\x04zegg")
-        self.assertEquals(self.factory.connect,
-            [("127.0.0.1", 4369, self.factory)])
+        self.assertEqual(transport.value(), "\x00\x04zegg")
+        self.assertEqual(
+            self.factory.connect, [("127.0.0.1", 4369, self.factory)])
         proto.dataReceived(
             "w\x00\x00\x09M\x01\x00\x05\x00\x05\x00\x03bar\x00")
         clientProto = object()
         clientFactory._connectDeferred.callback(clientProto)
-        self.assertEquals(self.factory.connect,
+        self.assertEqual(
+            self.factory.connect,
             [("127.0.0.1", 4369, self.factory),
              ("127.0.0.1", 9, clientFactory)])
         return d.addCallback(self.assertIdentical, clientProto)
@@ -413,7 +416,7 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         self.factory._nodeCache["foo@bar"] = clientProto2
         clientFactory = DummyClientFactory()
         self.factory.onConnectionLost(clientFactory)
-        self.assertEquals(self.factory._nodeCache, {"foo@bar": clientProto2})
+        self.assertEqual(self.factory._nodeCache, {"foo@bar": clientProto2})
 
 
     def test_names(self):
@@ -426,11 +429,11 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         proto = self.factory.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
-        self.assertEquals(transport.value(), "\x00\x01n")
+        self.assertEqual(transport.value(), "\x00\x01n")
         proto.dataReceived("\x00\x00\x00\x01")
         proto.dataReceived("name %s at port %s\n" % ("foo", 1234))
         transport.loseConnection()
-        return d.addCallback(self.assertEquals, [("foo", 1234)])
+        return d.addCallback(self.assertEqual, [("foo", 1234)])
 
 
     def test_dump(self):
@@ -443,13 +446,13 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         proto = self.factory.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
-        self.assertEquals(transport.value(), "\x00\x01d")
+        self.assertEqual(transport.value(), "\x00\x01d")
         proto.dataReceived("\x00\x00\x00\x01")
         proto.dataReceived(
             "active name    <%s> at port %s, fd = %s\n\x00" % ("foo", 1234, 3))
         transport.loseConnection()
-        return d.addCallback(self.assertEquals,
-                {"active": [("foo", 1234, 3)], "old": []})
+        return d.addCallback(
+            self.assertEqual, {"active": [("foo", 1234, 3)], "old": []})
 
 
     def test_kill(self):
@@ -462,7 +465,7 @@ class OneShotPortMapperFactoryTestCase(TestCase):
         proto = self.factory.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
-        self.assertEquals(transport.value(), "\x00\x01k")
+        self.assertEqual(transport.value(), "\x00\x01k")
         proto.dataReceived("OK")
         transport.loseConnection()
-        return d.addCallback(self.assertEquals, "OK")
+        return d.addCallback(self.assertEqual, "OK")

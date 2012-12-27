@@ -27,7 +27,7 @@ class PackTestCase(TestCase):
         """
         Pack an integer on 1 byte, not the erlang term.
         """
-        self.assertEquals(self.packer.packChar(3), "\x03")
+        self.assertEqual(self.packer.packChar(3), "\x03")
 
 
     def test_packCharError(self):
@@ -43,8 +43,8 @@ class PackTestCase(TestCase):
         """
         Pack integers on 2 bytes, not the erlang terms.
         """
-        self.assertEquals(self.packer.packShort(3), "\x00\x03")
-        self.assertEquals(self.packer.packShort(2032), "\x07\xf0")
+        self.assertEqual(self.packer.packShort(3), "\x00\x03")
+        self.assertEqual(self.packer.packShort(2032), "\x07\xf0")
 
 
     def test_packShortError(self):
@@ -59,9 +59,9 @@ class PackTestCase(TestCase):
         """
         Test packing integers, not the erlang terms.
         """
-        self.assertEquals(self.packer.packInt(3), "\x00\x00\x00\x03")
-        self.assertEquals(self.packer.packInt(2032), "\x00\x00\x07\xf0")
-        self.assertEquals(self.packer.packInt(723120), "\x00\x0b\x08\xb0")
+        self.assertEqual(self.packer.packInt(3), "\x00\x00\x00\x03")
+        self.assertEqual(self.packer.packInt(2032), "\x00\x00\x07\xf0")
+        self.assertEqual(self.packer.packInt(723120), "\x00\x0b\x08\xb0")
 
 
     def test_packIntError(self):
@@ -77,15 +77,15 @@ class PackTestCase(TestCase):
         Test packing a long integer.
         """
         i = 2 ** 32 + 10
-        self.assertEquals(self.packer.pack_int(i),
-            "n\x05\x00\n\x00\x00\x00\x01")
+        self.assertEqual(
+            self.packer.pack_int(i), "n\x05\x00\n\x00\x00\x00\x01")
 
 
     def test_packAtom(self):
         """
         Pack an atom term.
         """
-        self.assertEquals(self.packer.packOneTerm(Atom("yes")), "d\x00\x03yes")
+        self.assertEqual(self.packer.packOneTerm(Atom("yes")), "d\x00\x03yes")
 
 
     def test_packNewReference(self):
@@ -93,7 +93,8 @@ class PackTestCase(TestCase):
         Test packing a new reference.
         """
         r = Reference(Atom("bar"), [3, 4], 2)
-        self.assertEquals(self.packer.packOneTerm(r),
+        self.assertEqual(
+            self.packer.packOneTerm(r),
             "r\x00\x02d\x00\x03bar\x02\x00\x00\x00\x03\x00\x00\x00\x04")
 
 
@@ -101,31 +102,33 @@ class PackTestCase(TestCase):
         """
         Test packing a small integer.
         """
-        self.assertEquals(self.packer.packOneTerm(123), "a\x7b")
+        self.assertEqual(self.packer.packOneTerm(123), "a\x7b")
 
 
     def test_packBigInteger(self):
         """
         Test packing a big integer.
         """
-        self.assertEquals(self.packer.packOneTerm(1230), "b\x00\x00\x04\xce")
-        self.assertEquals(self.packer.packOneTerm(-123), "b\xff\xff\xff\x85")
+        self.assertEqual(self.packer.packOneTerm(1230), "b\x00\x00\x04\xce")
+        self.assertEqual(self.packer.packOneTerm(-123), "b\xff\xff\xff\x85")
 
 
     def test_packSmallString(self):
         """
         Test packing a small string.
         """
-        self.assertEquals(self.packer.packOneTerm("spam"), "k\x00\x04spam")
+        self.assertEqual(self.packer.packOneTerm("spam"), "k\x00\x04spam")
 
 
     def test_packFloat(self):
         """
         Test packing a float.
         """
-        self.assertEquals(self.packer.packOneTerm(1.234),
+        self.assertEqual(
+            self.packer.packOneTerm(1.234),
             "c1.23399999999999998579e+00\x00\x00\x00\x00\x00")
-        self.assertEquals(self.packer.packOneTerm(-5.678),
+        self.assertEqual(
+            self.packer.packOneTerm(-5.678),
             "c-5.67799999999999993605e+00\x00\x00\x00\x00")
 
 
@@ -137,7 +140,8 @@ class PackTestCase(TestCase):
         self.packer.MAX_SHORT = 15
         longString = "x" * 20
         term = self.packer.packOneTerm(longString)
-        self.assertEquals(term,
+        self.assertEqual(
+            term,
             "l\x00\x00\x00\x14axaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxaxj")
 
 
@@ -146,7 +150,7 @@ class PackTestCase(TestCase):
         Test packing a binary value.
         """
         term = self.packer.packOneTerm(Binary("abc"))
-        self.assertEquals(term, "m\x00\x00\x00\x03abc")
+        self.assertEqual(term, "m\x00\x00\x00\x03abc")
 
 
     def test_packPid(self):
@@ -154,7 +158,8 @@ class PackTestCase(TestCase):
         Test packing a Pid.
         """
         p = Pid(Atom("foo"), 1234, 12, 2)
-        self.assertEquals(self.packer.packOneTerm(p),
+        self.assertEqual(
+            self.packer.packOneTerm(p),
             "gd\x00\x03foo\x00\x00\x04\xd2\x00\x00\x00\x0c\x02")
 
 
@@ -163,7 +168,8 @@ class PackTestCase(TestCase):
         Test packing an old style reference.
         """
         r = Reference(Atom("bar"), 3, 2)
-        self.assertEquals(self.packer.packOneTerm(r),
+        self.assertEqual(
+            self.packer.packOneTerm(r),
             "ed\x00\x03bar\x00\x00\x00\x03\x02")
 
 
@@ -172,7 +178,8 @@ class PackTestCase(TestCase):
         Test packing a tuple of atoms.
         """
         t = Tuple((Atom("a"), Atom("b")))
-        self.assertEquals(self.packer.packOneTerm(t),
+        self.assertEqual(
+            self.packer.packOneTerm(t),
             "h\x02d\x00\x01ad\x00\x01b")
 
 
@@ -183,7 +190,8 @@ class PackTestCase(TestCase):
         # Limit the size for not building a huge list
         self.packer.MAX_CHAR = 2
         t = Tuple((Atom("a"), Atom("b"), Atom("c")))
-        self.assertEquals(self.packer.packOneTerm(t),
+        self.assertEqual(
+            self.packer.packOneTerm(t),
             "i\x00\x00\x00\x03d\x00\x01ad\x00\x01bd\x00\x01c")
 
 
@@ -192,7 +200,8 @@ class PackTestCase(TestCase):
         Test packing a list of atoms.
         """
         t = List((Atom("a"), Atom("b")))
-        self.assertEquals(self.packer.packOneTerm(t),
+        self.assertEqual(
+            self.packer.packOneTerm(t),
             "l\x00\x00\x00\x02d\x00\x01ad\x00\x01bj")
 
 
@@ -201,15 +210,15 @@ class PackTestCase(TestCase):
         Test packing a list of integers.
         """
         t = List([1, 2])
-        self.assertEquals(self.packer.packOneTerm(t),
-            "k\x00\x02\x01\x02")
+        self.assertEqual(
+            self.packer.packOneTerm(t), "k\x00\x02\x01\x02")
 
 
     def test_packEmptyList(self):
         """
         Test packing an empty list.
         """
-        self.assertEquals(self.packer.packOneTerm([]), "j")
+        self.assertEqual(self.packer.packOneTerm([]), "j")
 
 
     def test_packDict(self):
@@ -220,7 +229,7 @@ class PackTestCase(TestCase):
         items = d.items()
         elts = (self.packer.packOneTerm(items[0])[1:],
                 self.packer.packOneTerm(items[1])[1:])
-        self.assertEquals(
+        self.assertEqual(
             self.packer.packOneTerm(d),
             "h\td\x00\x04dicta\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjjh"
             "\x01h\x10l\x00\x00\x00\x01l\x00\x00\x00%sj"
@@ -239,9 +248,9 @@ class PackTestCase(TestCase):
         expectedRaw = (
             "h\td\x00\x04dicta\x00a\x10a\x10a\x08aPa0h\x10"
             "jjjjjjjjjjjjjjjjh\x01h\x10jjjjjjjjjjjjjjjj")
-        self.assertEquals(
+        self.assertEqual(
             self.packer.packOneTerm(d), self.packer.packOneTerm(expected))
-        self.assertEquals(
+        self.assertEqual(
             self.packer.packOneTerm(d), expectedRaw)
 
 
@@ -251,7 +260,7 @@ class PackTestCase(TestCase):
         """
         s = set([Atom("bar"), Atom("foo")])
         val = [i.text for i in s]
-        self.assertEquals(
+        self.assertEqual(
             self.packer.packOneTerm(s),
             "h\td\x00\x03seta\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjj"
             "h\x01h\x10l\x00\x00\x00\x01d\x00\x03%sjl\x00\x00\x00\x01"
@@ -269,9 +278,9 @@ class PackTestCase(TestCase):
         expectedRaw = (
             "h\td\x00\x03seta\x00a\x10a\x10a\x08aPa0h\x10"
             "jjjjjjjjjjjjjjjjh\x01h\x10jjjjjjjjjjjjjjjj")
-        self.assertEquals(
+        self.assertEqual(
             self.packer.packOneTerm(s), self.packer.packOneTerm(expected))
-        self.assertEquals(
+        self.assertEqual(
             self.packer.packOneTerm(s), expectedRaw)
 
 
@@ -288,7 +297,7 @@ class PackTestCase(TestCase):
         C{termToBinary} should produce a fully compliant object with the
         C{MAGIC_VERSION} flag.
         """
-        self.assertEquals(self.packer.termToBinary(123), "\x83a\x7b")
+        self.assertEqual(self.packer.termToBinary(123), "\x83a\x7b")
 
 
     def test_compressed(self):
@@ -296,12 +305,14 @@ class PackTestCase(TestCase):
         C{termToBinary} can compress the binary data retrieved, using
         C{zlib.compress} with the given compression level..
         """
-        self.assertEquals(self.packer.termToBinary("x" * 35, compress=6),
+        self.assertEqual(
+            self.packer.termToBinary("x" * 35, compress=6),
             "\x83P\x00\x00\x00&x\x9c\xcbfP\xae \x0c\x00<S\x10\xf7")
 
         # The string is almost the same because the amount of data is low
         # The only bit changing is the one specifying the compressing level
-        self.assertEquals(self.packer.termToBinary("x" * 35, compress=2),
+        self.assertEqual(
+            self.packer.termToBinary("x" * 35, compress=2),
             "\x83P\x00\x00\x00&x^\xcbfP\xae \x0c\x00<S\x10\xf7")
 
 
@@ -309,5 +320,5 @@ class PackTestCase(TestCase):
         """
         Test packing a new format float.
         """
-        self.assertEquals(self.packer.packOneTerm(NewFloat(1.234)),
-            "F?\xf3\xbev\xc8\xb49X")
+        self.assertEqual(
+            self.packer.packOneTerm(NewFloat(1.234)), "F?\xf3\xbev\xc8\xb49X")

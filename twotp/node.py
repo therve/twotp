@@ -17,7 +17,7 @@ from twisted.internet.defer import (
     succeed, Deferred, maybeDeferred, TimeoutError)
 from twisted.python import log
 
-from twotp.term  import Tuple, Atom, Integer, Reference, Pid, List, Port
+from twotp.term import Tuple, Atom, Integer, Reference, Pid, List, Port
 from twotp.packer import termToBinary, thePacker
 from twotp.parser import ParserWithPidCache
 
@@ -407,9 +407,9 @@ class NodeProtocol(Protocol):
         Start timers checking connection activity.
         """
         self._responseTimerID = self.callLater(
-                self.factory.netTickTime * 0.25, self._responseTimer)
+            self.factory.netTickTime * 0.25, self._responseTimer)
         self._tickTimerID = self.callLater(
-                self.factory.netTickTime * 0.125, self._tickTimer)
+            self.factory.netTickTime * 0.125, self._tickTimer)
 
 
     def updateResponseTimer(self):
@@ -437,7 +437,7 @@ class NodeProtocol(Protocol):
             self.transport.loseConnection()
         else:
             self._responseTimerID = self.callLater(
-                    self.factory.netTickTime * 0.25, self._responseTimer)
+                self.factory.netTickTime * 0.25, self._responseTimer)
 
 
     def _tickTimer(self):
@@ -669,7 +669,7 @@ class ProcessBase(object):
         """
         nodeName = buildNodeName(nodeName)
         if (self.serverFactory is not None and
-            nodeName in self.serverFactory._nodeCache):
+                nodeName in self.serverFactory._nodeCache):
             return succeed(self.serverFactory._nodeCache[nodeName])
 
         def sync(instance):
@@ -750,8 +750,8 @@ class ProcessBase(object):
                 return result
             else:
                 raise ValueError("Unexpected result", result)
-        return self.callRemote(nodeName, "erlang", "whereis", Atom(process)
-            ).addCallback(check)
+        return self.callRemote(
+            nodeName, "erlang", "whereis", Atom(process)).addCallback(check)
 
 
     def link(self, pid):
@@ -771,8 +771,7 @@ class ProcessBase(object):
         def doUnlink(instance):
             self.pid.unlink(instance, pid)
             self.handler.sendUnlink(instance, self.pid, pid)
-        return self._getNodeConnection(pid.nodeName.text
-            ).addCallback(doUnlink)
+        return self._getNodeConnection(pid.nodeName.text).addCallback(doUnlink)
 
 
     def monitor(self, pid):
@@ -783,8 +782,8 @@ class ProcessBase(object):
         """
         def doMonitor(instance):
             return self.handler.sendMonitor(instance, self.pid, pid)
-        return self._getNodeConnection(pid.nodeName.text
-            ).addCallback(doMonitor)
+        d = self._getNodeConnection(pid.nodeName.text)
+        return d.addCallback(doMonitor)
 
 
     def demonitor(self, pid, ref):
@@ -793,8 +792,8 @@ class ProcessBase(object):
         """
         def doDemonitor(instance):
             return self.handler.sendDemonitor(instance, self, pid, ref)
-        return self._getNodeConnection(pid.nodeName.text
-            ).addCallback(doDemonitor)
+        d = self._getNodeConnection(pid.nodeName.text)
+        return d.addCallback(doDemonitor)
 
 
     def send(self, pid, msg):
@@ -969,8 +968,8 @@ class RexProcess(ProcessBase):
         Forward the string representation of the exception to the node.
         """
         log.err(error)
-        self.handler.send(proto, toPid,
-            Tuple((ref, (Atom('badrpc'), str(error.value)))))
+        self.handler.send(
+            proto, toPid, Tuple((ref, (Atom('badrpc'), str(error.value)))))
 
 
 
@@ -989,8 +988,8 @@ class RexResponseProcess(ProcessBase):
         Parse the message and fire the deferred with appropriate content.
         """
         d = self.deferred
-        if (isinstance(message[1], (list, tuple)) and
-            len(message[1]) > 0 and message[1][0] == Atom("badrpc")):
+        if (isinstance(message[1], (list, tuple)) and len(message[1]) > 0
+                and message[1][0] == Atom("badrpc")):
             d.errback(BadRPC(message[1][1]))
         else:
             d.callback(message[1])

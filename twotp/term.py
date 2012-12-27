@@ -433,8 +433,8 @@ class Fun(Term):
         """
         s = ("<%s at %s> with pid %s, module %s, index %s , uniq %s, "
              "freeVars %s" % (
-            self.__class__.__name__, hex(unsignedID(self)), self.pid,
-            self.module, self.index, self.uniq, self.freeVars))
+             self.__class__.__name__, hex(unsignedID(self)), self.pid,
+             self.module, self.index, self.uniq, self.freeVars))
         return s
 
 
@@ -480,9 +480,9 @@ class NewFun(Term):
         """
         s = ("<%s at %s> with pid %s, module %s, index %s , uniq %s, "
              "freeVars %s, arity %s, numFree %s, oldIndex %s, oldUniq %s" % (
-               self.__class__.__name__, hex(unsignedID(self)), self.pid,
-               self.module, self.index, self.uniq, self.freeVars, self.arity,
-               self.numFree, self.oldIndex, self.oldUniq))
+             self.__class__.__name__, hex(unsignedID(self)), self.pid,
+             self.module, self.index, self.uniq, self.freeVars, self.arity,
+             self.numFree, self.oldIndex, self.oldUniq))
         return s
 
 

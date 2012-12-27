@@ -83,8 +83,8 @@ class NodeClientProtocol(NodeProtocol):
             self.notifyFailure(
                 InvalidIdentifier("Got %r instead of 'n'" % (packetData[0],)))
             return ""
-        self.peerVersion, self.peerFlags, challenge = struct.unpack("!HII",
-                                                          packetData[1:11])
+        self.peerVersion, self.peerFlags, challenge = struct.unpack(
+            "!HII", packetData[1:11])
         self.peerName = packetData[11:]
 
         self.sendChallengeReply(challenge)

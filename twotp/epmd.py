@@ -98,7 +98,7 @@ class PortMapperProtocol(Protocol):
             nLen = theParser.parseShort(data[10:12])
             nodeName = data[12:12 + nLen]
             if (dataLength == 12 + nLen + 1 and
-                theParser.parseChar(data[-1]) == 0):
+                    theParser.parseChar(data[-1]) == 0):
                 extra = ""
                 data = ""
             else:
@@ -216,7 +216,8 @@ class PortMapperProtocol(Protocol):
         Create a C{ALIVE2_REQ} request and send it over the wire.
         """
         data = struct.pack('!BHBBHHH', self.ALIVE2_REQ, portNumber, nodeType,
-            0, distrVSNRange[0], distrVSNRange[1], len(nodeName))
+                           0, distrVSNRange[0], distrVSNRange[1],
+                           len(nodeName))
         data += nodeName
         data += thePacker.packShort(len(extra))
         data += extra

@@ -134,9 +134,9 @@ class NodeProtocolTestCase(TestCase):
 
         self.proto.send = send
         self.proto.startTimer()
-        self.assertEquals(called, [])
+        self.assertEqual(called, [])
         self.proto.clock.advance(1)
-        self.assertEquals(called, [""])
+        self.assertEqual(called, [""])
 
 
     def test_sendHandshake(self):
@@ -145,7 +145,7 @@ class NodeProtocolTestCase(TestCase):
         """
         self.proto.state = "handshake"
         self.proto.send("foo")
-        self.assertEquals(self.transport.value(), "\x00\x03foo")
+        self.assertEqual(self.transport.value(), "\x00\x03foo")
 
 
     def test_sendChallenge(self):
@@ -154,7 +154,7 @@ class NodeProtocolTestCase(TestCase):
         """
         self.proto.state = "challenge"
         self.proto.send("bar")
-        self.assertEquals(self.transport.value(), "\x00\x03bar")
+        self.assertEqual(self.transport.value(), "\x00\x03bar")
 
 
     def test_sendConnected(self):
@@ -163,25 +163,25 @@ class NodeProtocolTestCase(TestCase):
         """
         self.proto.state = "connected"
         self.proto.send("egg")
-        self.assertEquals(self.transport.value(), "\x00\x00\x00\x03egg")
+        self.assertEqual(self.transport.value(), "\x00\x00\x00\x03egg")
 
 
     def test_generateChallenge(self):
         """
         Test output value of generateChallenge: it truncates data on 28 bits.
         """
-        self.assertEquals(self.proto.generateChallenge(), 2)
+        self.assertEqual(self.proto.generateChallenge(), 2)
         data = [0x7fffffff + 2]
         self.factory.randomFactory = data.pop
-        self.assertEquals(self.proto.generateChallenge(), 1)
+        self.assertEqual(self.proto.generateChallenge(), 1)
 
 
     def test_generateDigest(self):
         """
         Test output value of generateDigest.
         """
-        self.assertEquals(self.proto.generateDigest(123, "test_cookie"),
-                          "\x15f\x1c\xe3\x92\x8c\xf9\xfd\xf16R?X\x86\x95L")
+        self.assertEqual(self.proto.generateDigest(123, "test_cookie"),
+                         "\x15f\x1c\xe3\x92\x8c\xf9\xfd\xf16R?X\x86\x95L")
 
 
     def test_messageReceived(self):
@@ -196,7 +196,7 @@ class NodeProtocolTestCase(TestCase):
 
         self.factory.handler.passThroughMessage = cb
         self.proto.dataReceived("\x00\x00\x00\x06p\x83h\x01a\x01")
-        self.assertEquals(calls, [(self.proto, (1,))])
+        self.assertEqual(calls, [(self.proto, (1,))])
 
 
 
@@ -210,7 +210,7 @@ class UtilitiesTestCase(TestCase):
         Tests for C{buildNodeName}.
         """
         nodeName = buildNodeName("foo@bar")
-        self.assertEquals(nodeName, "foo@bar")
+        self.assertEqual(nodeName, "foo@bar")
         nodeName = buildNodeName("foo")
         self.assertIn("@", nodeName)
 
@@ -221,7 +221,7 @@ class UtilitiesTestCase(TestCase):
         """
         hostName = getHostName()
         self.assertIsInstance(hostName, str)
-        self.assertNotEquals(hostName, "")
+        self.assertNotEqual(hostName, "")
 
 
 
@@ -245,7 +245,7 @@ class MessageHandlerTestCase(TestCase):
         destPid = Pid(Atom("spam@egg"), 0, 0, 0)
         ctrlMessage = (self.handler.CTRLMSGOP_LINK, srcPid, destPid)
         self.handler.passThroughMessage(None, ctrlMessage, None)
-        self.assertEquals(destPid._links, set([(None, srcPid)]))
+        self.assertEqual(destPid._links, set([(None, srcPid)]))
 
 
     def test_unlinkNotExisting(self):
@@ -256,7 +256,7 @@ class MessageHandlerTestCase(TestCase):
         destPid = Pid(Atom("spam@egg"), 0, 0, 0)
         ctrlMessage = (self.handler.CTRLMSGOP_UNLINK, srcPid, destPid)
         self.handler.passThroughMessage(None, ctrlMessage, None)
-        self.assertEquals(destPid._links, set([]))
+        self.assertEqual(destPid._links, set([]))
 
 
     def test_unlink(self):
@@ -267,19 +267,19 @@ class MessageHandlerTestCase(TestCase):
         destPid = Pid(Atom("spam@egg"), 0, 0, 0)
         destPid.link(None, srcPid)
         # Sanity check
-        self.assertNotEquals(destPid._links, set([]))
+        self.assertNotEqual(destPid._links, set([]))
 
         ctrlMessage = (self.handler.CTRLMSGOP_UNLINK, srcPid, destPid)
         self.handler.passThroughMessage(None, ctrlMessage, None)
-        self.assertEquals(destPid._links, set([]))
+        self.assertEqual(destPid._links, set([]))
 
 
     def test_nodeLink(self):
         """
         Test handling of a NODE_LINK token.
         """
-        self.assertRaises(NotImplementedError,
-            self.handler.passThroughMessage, None,
+        self.assertRaises(
+            NotImplementedError, self.handler.passThroughMessage, None,
             (self.handler.CTRLMSGOP_NODE_LINK,), None)
 
 
@@ -287,8 +287,8 @@ class MessageHandlerTestCase(TestCase):
         """
         Test handling of a GROUP_LEADER token.
         """
-        self.assertRaises(NotImplementedError,
-            self.handler.passThroughMessage, None,
+        self.assertRaises(
+            NotImplementedError, self.handler.passThroughMessage, None,
             (self.handler.CTRLMSGOP_GROUP_LEADER,), None)
 
 
@@ -304,8 +304,8 @@ class MessageHandlerTestCase(TestCase):
 
         ctrlMessage = (self.handler.CTRLMSGOP_EXIT, srcPid, destPid, "reason")
         self.handler.passThroughMessage(None, ctrlMessage, None)
-        self.assertEquals(called, [("reason",)])
-        self.assertEquals(destPid._links, set([]))
+        self.assertEqual(called, [("reason",)])
+        self.assertEqual(destPid._links, set([]))
 
 
     def test_exit2(self):
@@ -320,8 +320,8 @@ class MessageHandlerTestCase(TestCase):
 
         ctrlMessage = (self.handler.CTRLMSGOP_EXIT2, srcPid, destPid, "reason")
         self.handler.passThroughMessage(None, ctrlMessage, None)
-        self.assertEquals(called, [("reason",)])
-        self.assertEquals(destPid._links, set([]))
+        self.assertEqual(called, [("reason",)])
+        self.assertEqual(destPid._links, set([]))
 
 
     def test_exitTT(self):
@@ -337,8 +337,8 @@ class MessageHandlerTestCase(TestCase):
         ctrlMessage = (self.handler.CTRLMSGOP_EXIT_TT, srcPid, destPid,
                        "reason", "TOKEN")
         self.handler.passThroughMessage(None, ctrlMessage, None)
-        self.assertEquals(called, [("reason",)])
-        self.assertEquals(destPid._links, set([]))
+        self.assertEqual(called, [("reason",)])
+        self.assertEqual(destPid._links, set([]))
 
 
     def test_exit2TT(self):
@@ -354,8 +354,8 @@ class MessageHandlerTestCase(TestCase):
         ctrlMessage = (self.handler.CTRLMSGOP_EXIT2_TT, srcPid, destPid,
                        "reason", "TOKEN")
         self.handler.passThroughMessage(None, ctrlMessage, None)
-        self.assertEquals(called, [("reason",)])
-        self.assertEquals(destPid._links, set([]))
+        self.assertEqual(called, [("reason",)])
+        self.assertEqual(destPid._links, set([]))
 
 
     def test_monitorP(self):
@@ -367,7 +367,7 @@ class MessageHandlerTestCase(TestCase):
         ref = Reference(Atom("spam@egg"), 0, 0)
         ctrlMessage = (self.handler.CTRLMSGOP_MONITOR_P, srcPid, destPid, ref)
         self.handler.passThroughMessage(None, ctrlMessage, None)
-        self.assertEquals(destPid._remoteMonitors, set([(None, srcPid, ref)]))
+        self.assertEqual(destPid._remoteMonitors, set([(None, srcPid, ref)]))
 
 
     def test_demonitorPNotExisting(self):
@@ -381,7 +381,7 @@ class MessageHandlerTestCase(TestCase):
         ctrlMessage = (self.handler.CTRLMSGOP_DEMONITOR_P, srcPid, destPid,
                        ref)
         self.handler.passThroughMessage(None, ctrlMessage, None)
-        self.assertEquals(destPid._remoteMonitors, set([]))
+        self.assertEqual(destPid._remoteMonitors, set([]))
 
 
     def test_demonitorP(self):
@@ -393,12 +393,12 @@ class MessageHandlerTestCase(TestCase):
         ref = Reference(Atom("spam@egg"), 0, 0)
         destPid._remoteMonitor(None, srcPid, ref)
         # Sanity check
-        self.assertNotEquals(destPid._remoteMonitors, set([]))
+        self.assertNotEqual(destPid._remoteMonitors, set([]))
 
         ctrlMessage = (self.handler.CTRLMSGOP_DEMONITOR_P, srcPid, destPid,
                        ref)
         self.handler.passThroughMessage(None, ctrlMessage, None)
-        self.assertEquals(destPid._remoteMonitors, set([]))
+        self.assertEqual(destPid._remoteMonitors, set([]))
 
 
     def test_monitorPExit(self):
@@ -428,7 +428,7 @@ class MessageHandlerTestCase(TestCase):
         ctrlMessage = (self.handler.CTRLMSGOP_MONITOR_P_EXIT, srcPid, destPid,
                        ref, "reason")
         self.handler.passThroughMessage(None, ctrlMessage, None)
-        self.assertEquals(called, [("reason",)])
+        self.assertEqual(called, [("reason",)])
 
 
     def test_operationRegSendUnhandled(self):
@@ -446,11 +446,11 @@ class MessageHandlerTestCase(TestCase):
         Test L{MessageHandler.createPid}.
         """
         pid = self.handler.createPid()
-        self.assertEquals(pid.nodeId, 0)
-        self.assertEquals(pid.serial, 0)
+        self.assertEqual(pid.nodeId, 0)
+        self.assertEqual(pid.serial, 0)
         pid = self.handler.createPid()
-        self.assertEquals(pid.nodeId, 1)
-        self.assertEquals(pid.serial, 0)
+        self.assertEqual(pid.nodeId, 1)
+        self.assertEqual(pid.serial, 0)
 
 
     def test_createPidSerialIncrement(self):
@@ -460,12 +460,12 @@ class MessageHandlerTestCase(TestCase):
         """
         self.handler.pidCount = 0x7fff
         pid = self.handler.createPid()
-        self.assertEquals(pid.nodeId, 32767)
-        self.assertEquals(pid.serial, 0)
+        self.assertEqual(pid.nodeId, 32767)
+        self.assertEqual(pid.serial, 0)
 
         pid = self.handler.createPid()
-        self.assertEquals(pid.nodeId, 0)
-        self.assertEquals(pid.serial, 1)
+        self.assertEqual(pid.nodeId, 0)
+        self.assertEqual(pid.serial, 1)
 
 
     def test_createPidSerialReset(self):
@@ -477,12 +477,12 @@ class MessageHandlerTestCase(TestCase):
         self.handler.pidCount = 0x7fff
         self.handler.serial = 0x1fff
         pid = self.handler.createPid()
-        self.assertEquals(pid.nodeId, 32767)
-        self.assertEquals(pid.serial, 8191)
+        self.assertEqual(pid.nodeId, 32767)
+        self.assertEqual(pid.serial, 8191)
 
         pid = self.handler.createPid()
-        self.assertEquals(pid.nodeId, 0)
-        self.assertEquals(pid.serial, 0)
+        self.assertEqual(pid.nodeId, 0)
+        self.assertEqual(pid.serial, 0)
 
 
     def test_createPidSerialResetNotExtented(self):
@@ -498,12 +498,12 @@ class MessageHandlerTestCase(TestCase):
         self.handler.pidCount = 0x7fff
         self.handler.serial = 0x07
         pid = self.handler.createPid()
-        self.assertEquals(pid.nodeId, 32767)
-        self.assertEquals(pid.serial, 7)
+        self.assertEqual(pid.nodeId, 32767)
+        self.assertEqual(pid.serial, 7)
 
         pid = self.handler.createPid()
-        self.assertEquals(pid.nodeId, 0)
-        self.assertEquals(pid.serial, 0)
+        self.assertEqual(pid.nodeId, 0)
+        self.assertEqual(pid.serial, 0)
 
 
     def test_createPort(self):
@@ -511,10 +511,10 @@ class MessageHandlerTestCase(TestCase):
         Test L{MessageHandler.createPort}.
         """
         port = self.handler.createPort()
-        self.assertEquals(port.portId, 0)
+        self.assertEqual(port.portId, 0)
 
         port = self.handler.createPort()
-        self.assertEquals(port.portId, 1)
+        self.assertEqual(port.portId, 1)
 
 
     def test_createPortReset(self):
@@ -524,10 +524,10 @@ class MessageHandlerTestCase(TestCase):
         """
         self.handler.portCount = 0xfffffff
         port = self.handler.createPort()
-        self.assertEquals(port.portId, 268435455)
+        self.assertEqual(port.portId, 268435455)
 
         port = self.handler.createPort()
-        self.assertEquals(port.portId, 0)
+        self.assertEqual(port.portId, 0)
 
 
     def test_createPortNotExtended(self):
@@ -541,10 +541,10 @@ class MessageHandlerTestCase(TestCase):
         proto.distrFlags = 0
         self.handler.portCount = 0x3ffff
         port = self.handler.createPort()
-        self.assertEquals(port.portId, 262143)
+        self.assertEqual(port.portId, 262143)
 
         port = self.handler.createPort()
-        self.assertEquals(port.portId, 0)
+        self.assertEqual(port.portId, 0)
 
 
 
@@ -636,13 +636,13 @@ class ProcessTestCase(TestCase):
         proto = epmd.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
-        self.assertEquals(transport.value(), "\x00\x04zegg")
-        self.assertEquals(epmd.connect, [("spam", 4369, epmd)])
+        self.assertEqual(transport.value(), "\x00\x04zegg")
+        self.assertEqual(epmd.connect, [("spam", 4369, epmd)])
         proto.dataReceived(
             "w\x00\x00\x09M\x01\x00\x05\x00\x05\x00\x03bar\x00")
 
         [factory] = epmd.factories
-        self.assertEquals(
+        self.assertEqual(
             epmd.factoriesArgs,
             [("foo@bar", "test_cookie", epmd.onConnectionLost)])
 
@@ -692,7 +692,7 @@ class ProcessTestCase(TestCase):
 
         pids = set(self.process.handler._parser._pids)
         d = self.process.ping("egg@spam")
-        self.assertEquals(
+        self.assertEqual(
             transport.value(),
             "\x00\x00\x00\x7fp\x83h\x04a\x06gd\x00\x07foo@bar\x00"
             "\x00\x00\x03\x00\x00\x00\x00\x00d\x00\x00d\x00\nnet_kernel\x83h"
@@ -705,7 +705,7 @@ class ProcessTestCase(TestCase):
         yes = Atom("yes")
 
         self.process.handler.operation_send(proto, (Atom(""), pid), (ref, yes))
-        return d.addCallback(self.assertEquals, "pong")
+        return d.addCallback(self.assertEqual, "pong")
 
 
     def test_callRemote(self):
@@ -727,7 +727,7 @@ class ProcessTestCase(TestCase):
 
         pids = set(self.process.handler._parser._pids)
         d = self.process.callRemote("egg@spam", "module1", "func1", "arg", 1)
-        self.assertEquals(
+        self.assertEqual(
             transport.value(),
             "\x00\x00\x00jp\x83h\x04a\x06gd\x00\x07foo@bar\x00\x00"
             "\x00\x03\x00\x00\x00\x00\x00d\x00\x00d\x00\x03rex\x83h\x02gd\x00"
@@ -739,7 +739,7 @@ class ProcessTestCase(TestCase):
         self.process.handler.operation_send(
             proto, (Atom(""), pid), (Atom("rex"), [2, "arg"]))
 
-        return d.addCallback(self.assertEquals, [2, "arg"])
+        return d.addCallback(self.assertEqual, [2, "arg"])
 
 
     def test_names(self):
@@ -752,9 +752,9 @@ class ProcessTestCase(TestCase):
         proto = epmd.buildProtocol(("127.0.01", 4369))
         proto.makeConnection(transport)
         transport.protocol = proto
-        self.assertEquals(transport.value(), "\x00\x01n")
+        self.assertEqual(transport.value(), "\x00\x01n")
         proto.dataReceived("\x00\x00\x00\x01")
         proto.dataReceived("name %s at port %s\n" % ("foo", 1234))
         proto.dataReceived("name %s at port %s\n" % ("egg", 4321))
         transport.loseConnection()
-        return d.addCallback(self.assertEquals, [("foo", 1234), ("egg", 4321)])
+        return d.addCallback(self.assertEqual, [("foo", 1234), ("egg", 4321)])

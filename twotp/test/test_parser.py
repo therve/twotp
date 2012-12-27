@@ -28,7 +28,7 @@ class ParseTestCase(TestCase):
         """
         Try to parse the binary representation of an atom.
         """
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("d\x00\x03foo"), (Atom("foo"), ""))
 
 
@@ -36,7 +36,7 @@ class ParseTestCase(TestCase):
         """
         Try to parse the binary representation of a short string object.
         """
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("k\x00\x04dang"),
             ([100, 97, 110, 103], ""))
 
@@ -45,14 +45,14 @@ class ParseTestCase(TestCase):
         """
         Try to parse NIL value.
         """
-        self.assertEquals(self.parser.binaryToTerm("j"), (List([]), ""))
+        self.assertEqual(self.parser.binaryToTerm("j"), (List([]), ""))
 
 
     def test_parseList(self):
         """
         Try to parse a list of integers.
         """
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("l\x00\x00\x00\x02a\x01a\x02j"),
             (List([1, 2]), ""))
 
@@ -61,7 +61,7 @@ class ParseTestCase(TestCase):
         """
         Test parsing a small tuple of integer values.
         """
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("h\x02a\x05a\x04"), (Tuple([5, 4]), ""))
 
 
@@ -69,7 +69,7 @@ class ParseTestCase(TestCase):
         """
         Try parsing a large tuple of integers.
         """
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("i\x00\x00\x00\x02a\x05a\x04"),
             (Tuple([5, 4]), ""))
 
@@ -79,10 +79,10 @@ class ParseTestCase(TestCase):
         Try parsing a positive and negative big integer. The only difference
         between the two binary values is the sign bit.
         """
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("o\x00\x00\x00\x04\x00\x01\x02\x03\x04"),
             (Integer(67305985), ""))
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("o\x00\x00\x00\x04\x01\x01\x02\x03\x04"),
             (Integer(-67305985), ""))
 
@@ -92,9 +92,9 @@ class ParseTestCase(TestCase):
         Try parsing a positive and negative small big integer. The only
         difference between the two binary values is the sign bit.
         """
-        self.assertEquals(self.parser.binaryToTerm(
+        self.assertEqual(self.parser.binaryToTerm(
             "n\x04\x00\x01\x02\x03\x04"), (Integer(67305985), ""))
-        self.assertEquals(self.parser.binaryToTerm(
+        self.assertEqual(self.parser.binaryToTerm(
             "n\x04\x01\x01\x02\x03\x04"), (Integer(-67305985), ""))
 
 
@@ -102,8 +102,9 @@ class ParseTestCase(TestCase):
         """
         Test parsing a float null terminated.
         """
-        self.assertEquals(
-            self.parser.binaryToTerm("c\x31\x32\x2e\x33\x34\x00\x00\x00\x00"
+        self.assertEqual(
+            self.parser.binaryToTerm(
+                "c\x31\x32\x2e\x33\x34\x00\x00\x00\x00"
                 "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00"
                 "\x00\x00\x00\x00\x00\x00\x00"),
             (Float(12.34), ""))
@@ -113,14 +114,15 @@ class ParseTestCase(TestCase):
         """
         Try to parse a float without null character.
         """
-        self.assertEquals(
-            self.parser.binaryToTerm("c\x31\x32\x2e\x33\x34\x32\x32\x32\x32"
+        self.assertEqual(
+            self.parser.binaryToTerm(
+                "c\x31\x32\x2e\x33\x34\x32\x32\x32\x32"
                 "\x32\x32\x32\x32\x32\x32\x32\x32\x32\x32\x32\x32\x32\x32\x32"
                 "\x32\x32\x32\x32\x32\x32\x32"),
             (Float(12.34222222222222222222222222222), ""))
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("c-5.6779999999999999360"
-                "5e+00\x00\x00\x00\x00"),
+                                     "5e+00\x00\x00\x00\x00"),
             (Float(-5.678), ""))
 
 
@@ -128,11 +130,11 @@ class ParseTestCase(TestCase):
         """
         Test parsing a standard integer on 32 bits.
         """
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("b\x00\x00\x00\x0f"), (Integer(15), ""))
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("b\xff\xff\xff\xff"), (Integer(-1), ""))
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("b\xff\xff\xff\xfe"), (Integer(-2), ""))
 
 
@@ -140,7 +142,7 @@ class ParseTestCase(TestCase):
         """
         Try to parse a small integer on 1 byte.
         """
-        self.assertEquals(self.parser.binaryToTerm("a\x0e"), (Integer(14), ""))
+        self.assertEqual(self.parser.binaryToTerm("a\x0e"), (Integer(14), ""))
 
 
     def test_parseNewReference(self):
@@ -149,7 +151,7 @@ class ParseTestCase(TestCase):
         array of integers.
         """
         r = Reference(Atom('bar'), [3, 4], 1)
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("r\x00\x02d\x00\x03bar"
                                      "\x01\x00\x00\x00\x03\x00\x00\x00\x04"),
             (r, ""))
@@ -161,7 +163,7 @@ class ParseTestCase(TestCase):
         integer.
         """
         r = Reference(Atom('foo'), 5, 1)
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("ed\x00\x03foo"
                                      "\x00\x00\x00\x05\x01"),
             (r, ""))
@@ -172,7 +174,7 @@ class ParseTestCase(TestCase):
         Parse a Port binary representation.
         """
         r = Port(Atom('egg'), 12, 0)
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("fd\x00\x03egg\x00\x00\x00\x0c\x04"),
             (r, ""))
 
@@ -181,7 +183,7 @@ class ParseTestCase(TestCase):
         """
         Parse a binary object representation.
         """
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("m\x00\x00\x00\x03egg"),
             (Binary("egg"), ""))
 
@@ -192,8 +194,9 @@ class ParseTestCase(TestCase):
         """
         f = Fun(Pid(Atom('foo'), 1234, 56, 2), Atom("spam"), 12, 34,
                 [Atom("bar"), Atom("bim")])
-        self.assertEquals(
-            self.parser.binaryToTerm("u\x00\x00\x00\x02gd\x00\x03foo"
+        self.assertEqual(
+            self.parser.binaryToTerm(
+                "u\x00\x00\x00\x02gd\x00\x03foo"
                 "\x00\x00\x04\xd2\x00\x00\x008\x02d\x00\x04spama\x0ca\x22"
                 "d\x00\x03bard\x00\x03bim"),
             (f, ""))
@@ -206,11 +209,12 @@ class ParseTestCase(TestCase):
         f = NewFun(Pid(Atom('foo'), 1234, 56, 2), Atom("spam"), 1,
                    '1234567890123456', 1, 2, 12, 34,
                    [Atom("bar"), Atom("bim")])
-        self.assertEquals(
-            self.parser.binaryToTerm("p\x00\x00\x00\x02\x01"
-            "1234567890123456\x00\x00\x00\x01\x00\x00\x00\x02d\x00\x04spam"
-            "a\x0ca\x22gd\x00\x03foo\x00\x00\x04\xd2\x00\x00\x008\x02"
-            "d\x00\x03bard\x00\x03bim"),
+        self.assertEqual(
+            self.parser.binaryToTerm(
+                "p\x00\x00\x00\x02\x01"
+                "1234567890123456\x00\x00\x00\x01\x00\x00\x00\x02d\x00\x04spam"
+                "a\x0ca\x22gd\x00\x03foo\x00\x00\x04\xd2\x00\x00\x008\x02"
+                "d\x00\x03bard\x00\x03bim"),
             (f, ""))
 
 
@@ -221,11 +225,11 @@ class ParseTestCase(TestCase):
         """
         # This doesn't put it in the cache
         a = Atom("spam")
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("N\x03\x00\x04spam"), (a, ""))
         # Retrieve the value from cache
         b = Atom(None, 3)
-        self.assertEquals(a, b)
+        self.assertEqual(a, b)
 
 
     def test_parseCachedAtom(self):
@@ -235,7 +239,7 @@ class ParseTestCase(TestCase):
         """
         self.assertRaises(KeyError, self.parser.binaryToTerm, "C\x08")
         a = Atom("foo", 8)
-        self.assertEquals(self.parser.binaryToTerm("C\x08"), (a, ""))
+        self.assertEqual(self.parser.binaryToTerm("C\x08"), (a, ""))
 
 
     def test_unhandledCode(self):
@@ -257,7 +261,7 @@ class ParseTestCase(TestCase):
         Test parsing an export term.
         """
         e = Export(Atom("bar"), Atom("foo"), Integer(2))
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("qd\x00\x03bard\x00\x03fooa\x02"),
             (e, ""))
 
@@ -267,7 +271,7 @@ class ParseTestCase(TestCase):
         Test parsing a bit binary object.
         """
         b = BitBinary("\x04\x04\x04", 19)
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("M\x00\x00\x00\x03\x13\x04\x04\x04"),
             (b, ""))
 
@@ -281,7 +285,7 @@ class ParseTestCase(TestCase):
             "h\x01h\x10l\x00\x00\x00\x01l\x00\x00\x00\x02d\x00\x04spama\x01j"
             "jl\x00\x00\x00\x01l\x00\x00\x00\x02d\x00\x03fook\x00\x03bar"
             "jjjjjjjjjjjjjjjj")
-        self.assertEquals(
+        self.assertEqual(
             list(self.parser.binaryToTerms(data)),
             [{Atom("foo"): [98, 97, 114], Atom("spam"): 1}])
 
@@ -294,7 +298,7 @@ class ParseTestCase(TestCase):
             "\x83h\td\x00\x03seta\x02a\x10a\x10a\x08aPa0h\x10jjjjjjjjjjjjjjjj"
             "h\x01h\x10l\x00\x00\x00\x01d\x00\x03barjl\x00\x00\x00\x01d\x00"
             "\x03foojjjjjjjjjjjjjjj")
-        self.assertEquals(
+        self.assertEqual(
             list(self.parser.binaryToTerms(data)),
             [set([Atom("bar"), Atom("foo")])])
 
@@ -303,7 +307,7 @@ class ParseTestCase(TestCase):
         """
         Try to parse a full binary stream.
         """
-        self.assertEquals(
+        self.assertEqual(
             list(self.parser.binaryToTerms("\x83d\x00\x03foo")),
             [Atom("foo")])
 
@@ -313,7 +317,8 @@ class ParseTestCase(TestCase):
         If too much data is given, it should raise a C{RemainingDataError}
         exception.
         """
-        self.assertRaises(RemainingDataError, list,
+        self.assertRaises(
+            RemainingDataError, list,
             self.parser.binaryToTerms("\x83d\x00\x03foo\x01"))
 
 
@@ -321,7 +326,7 @@ class ParseTestCase(TestCase):
         """
         The parser is able to handle compressed data.
         """
-        self.assertEquals(
+        self.assertEqual(
             self.parser.binaryToTerm("P\x00\x00\x00\x12x\x9c\xcbf\xe0\xaf@"
                                      "\x05\x00@\xc8\x07\x83"),
             ([120] * 15, ""))
@@ -331,5 +336,5 @@ class ParseTestCase(TestCase):
         """
         Try to parse a new float.
         """
-        self.assertEquals(self.parser.binaryToTerm('F?\xf3\xae\x14z\xe1G\xae'),
-            (1.23, ""))
+        self.assertEqual(
+            self.parser.binaryToTerm('F?\xf3\xae\x14z\xe1G\xae'), (1.23, ""))

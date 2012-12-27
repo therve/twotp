@@ -73,9 +73,10 @@ class NodeServerProtocolTestCase(TestCase):
         """
         remainData = self.proto.handle_handshake(
             "\x00\x0an\x00\x01\x00\x00\x00\x02foo")
-        self.assertEquals(remainData, "")
-        self.assertEquals(self.proto.state, "challenge")
-        self.assertEquals(self.transport.value(),
+        self.assertEqual(remainData, "")
+        self.assertEqual(self.proto.state, "challenge")
+        self.assertEqual(
+            self.transport.value(),
             "\x00\x03sok"
             "\x00\x13n\x00\x05\x00\x00\x01\x0c\x00\x00\x00\x02spam@egg")
 
@@ -88,8 +89,9 @@ class NodeServerProtocolTestCase(TestCase):
         self.proto.dataReceived("\x0a")
         self.proto.dataReceived("n\x00\x01\x00")
         self.proto.dataReceived("\x00\x00\x02foo")
-        self.assertEquals(self.proto.state, "challenge")
-        self.assertEquals(self.transport.value(),
+        self.assertEqual(self.proto.state, "challenge")
+        self.assertEqual(
+            self.transport.value(),
             "\x00\x03sok"
             "\x00\x13n\x00\x05\x00\x00\x01\x0c\x00\x00\x00\x02spam@egg")
 
@@ -98,7 +100,8 @@ class NodeServerProtocolTestCase(TestCase):
         """
         Test a handshake with an invalid indentifier.
         """
-        self.assertRaises(ValueError, self.proto.handle_handshake,
+        self.assertRaises(
+            ValueError, self.proto.handle_handshake,
             "\x00\x0aN\x00\x01\x00\x00\x00\x02foo")
 
 
@@ -110,9 +113,10 @@ class NodeServerProtocolTestCase(TestCase):
         remainData = self.proto.handle_challenge(
             "\x00\x15r\x00\x00\x00\x05I\x14\xa6U'\xe0\x89\x14<\x1a\xdc\xf9"
             "(G&!")
-        self.assertEquals(remainData, "")
-        self.assertEquals(self.proto.state, "connected")
-        self.assertEquals(self.transport.value(),
+        self.assertEqual(remainData, "")
+        self.assertEqual(self.proto.state, "connected")
+        self.assertEqual(
+            self.transport.value(),
             "\x00\x11a\xe0\xdf2<\xe8\xbd\xa1o\xec\xe2\x12\xe5\x9c\xc6\xf7\x94")
 
 
@@ -126,8 +130,9 @@ class NodeServerProtocolTestCase(TestCase):
         self.proto.dataReceived("\x15")
         self.proto.dataReceived("r\x00\x00\x00\x05I\x14\xa6U'\xe0")
         self.proto.dataReceived("\x89\x14<\x1a\xdc\xf9(G&!")
-        self.assertEquals(self.proto.state, "connected")
-        self.assertEquals(self.transport.value(),
+        self.assertEqual(self.proto.state, "connected")
+        self.assertEqual(
+            self.transport.value(),
             "\x00\x11a\xe0\xdf2<\xe8\xbd\xa1o\xec\xe2\x12\xe5\x9c\xc6\xf7\x94")
 
 
@@ -136,7 +141,8 @@ class NodeServerProtocolTestCase(TestCase):
         Test a challenge with an invalid indentifier.
         """
         self.proto.challenge = self.proto.generateChallenge()
-        self.assertRaises(ValueError, self.proto.handle_challenge,
+        self.assertRaises(
+            ValueError, self.proto.handle_challenge,
             "\x00\x15R\x00\x00\x00\x05SkH\x1f\xd8Z\xf0\"\xe2\xf5\xd6x2\xe9!"
             "\xe6")
 
@@ -146,7 +152,8 @@ class NodeServerProtocolTestCase(TestCase):
         Test a challenge with a wrong digest.
         """
         self.proto.challenge = self.proto.generateChallenge()
-        self.assertRaises(ValueError, self.proto.handle_challenge,
+        self.assertRaises(
+            ValueError, self.proto.handle_challenge,
             "\x00\x15r\x00\x00\x00\x05SkH\x1f\xd8Z\xf1\"\xe2\xf5\xd6x2\xe9!"
             "\xe6")
 
@@ -164,9 +171,9 @@ class NodeServerFactoryTestCase(TestCase):
         """
         d = Deferred()
         factory = NodeServerFactory("foo@bar", "test_cookie", d)
-        self.assertEquals(factory.creation, 0)
+        self.assertEqual(factory.creation, 0)
         d.callback(2)
-        self.assertEquals(factory.creation, 2)
+        self.assertEqual(factory.creation, 2)
 
 
     def test_cache(self):
@@ -189,4 +196,4 @@ class NodeServerFactoryTestCase(TestCase):
         proto.dataReceived(
             "\x00\x15r\x00\x00\x00\x05I\x14\xa6U'\xe0\x89\x14<\x1a\xdc\xf9"
             "(G&!")
-        self.assertEquals(factory._nodeCache, {"foo": proto})
+        self.assertEqual(factory._nodeCache, {"foo": proto})

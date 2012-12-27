@@ -90,7 +90,7 @@ class IntegrationTestCase(TestCase):
         process = Process(self.nodeName, self.cookie)
 
         def check(response):
-            self.assertEquals(response, "pong")
+            self.assertEqual(response, "pong")
 
         return process.ping(self.erlangName).addCallback(check)
 
@@ -104,7 +104,7 @@ class IntegrationTestCase(TestCase):
 
         def check(response):
             expected = (Atom("ok"), map(ord, os.getcwd()))
-            self.assertEquals(response, expected)
+            self.assertEqual(response, expected)
 
         return process.callRemote(
             self.erlangName, "file", "get_cwd").addCallback(check)
@@ -119,11 +119,11 @@ class IntegrationTestCase(TestCase):
 
         def check(response):
             expected = {Atom("egg"): 4, Atom("foo"): map(ord, "spam")}
-            self.assertEquals(response, expected)
+            self.assertEqual(response, expected)
 
-        return process.callRemote(
-            self.erlangName, "dict", "store", Atom("egg"), 4, d
-            ).addCallback(check)
+        deferred = process.callRemote(
+            self.erlangName, "dict", "store", Atom("egg"), 4, d)
+        return deferred.addCallback(check)
 
 
     def test_setCompatibility(self):
@@ -135,8 +135,8 @@ class IntegrationTestCase(TestCase):
 
         def check(response):
             expected = set([Atom("foo"), 3, Atom("egg")])
-            self.assertEquals(response, expected)
+            self.assertEqual(response, expected)
 
-        return process.callRemote(
-            self.erlangName, "sets", "add_element", Atom("egg"), s
-            ).addCallback(check)
+        deferred = process.callRemote(
+            self.erlangName, "sets", "add_element", Atom("egg"), s)
+        return deferred.addCallback(check)

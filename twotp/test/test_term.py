@@ -27,7 +27,7 @@ class TermTestCase(TestCase):
         """
         Test equality of L{Atom}s.
         """
-        self.assertEquals(Atom("foo"), Atom("foo"))
+        self.assertEqual(Atom("foo"), Atom("foo"))
         self.assertNotIdentical(Atom("foo"), Atom("foo"))
 
 
@@ -37,7 +37,7 @@ class TermTestCase(TestCase):
         """
         a = Atom("bar", 1)
         b = Atom(None, 1)
-        self.assertEquals(a, b)
+        self.assertEqual(a, b)
 
 
     def test_cachedAtomError(self):
@@ -47,7 +47,7 @@ class TermTestCase(TestCase):
         self.assertRaises(AtomNotInCache, Atom, None, 1)
 
 
-    def test_reference_hash(self):
+    def test_referenceHash(self):
         """
         L{Reference} instances are hashable.
         """
