@@ -8,10 +8,11 @@ Test basic node functionalities.
 from twisted.internet.task import Clock
 from twisted.test.proto_helpers import StringTransportWithDisconnection
 
-from twotp.node import NodeProtocol, buildNodeName, getHostName, MessageHandler
-from twotp.node import Process
+from twotp.node import (
+    NodeProtocol, buildNodeName, getHostName, MessageHandler, Process,
+    NetKernelProcess, SpawnProcess)
 from twotp.server import NodeServerFactory
-from twotp.term import Pid, Atom, Reference
+from twotp.term import Pid, Atom, Reference, Tuple
 from twotp.test.util import TestCase
 
 from twotp.test.test_epmd import TestablePPMF, TestableOSPMF
@@ -574,23 +575,9 @@ class TestableProcess(Process):
     """
     A testable version of L{Process}.
     """
+    oneShotPortMapperClass = TestableProcessOSMPF
 
-    def oneShotPortMapperClass(self):
-        """
-        Return L{TestableProcessOSMPF} instead of L{OneShotPortMapperFactory}
-        for making tests easier.
-        """
-        return TestableProcessOSMPF
-    oneShotPortMapperClass = property(oneShotPortMapperClass)
-
-
-    def persistentPortMapperClass(self):
-        """
-        Return L{TestablePPMF} instead of L{PersistentPortMapperFactory} for
-        making tests easier.
-        """
-        return TestablePPMF
-    persistentPortMapperClass = property(persistentPortMapperClass)
+    persistentPortMapperClass = TestablePPMF
 
 
 
@@ -617,8 +604,14 @@ class ProcessTestCase(TestCase):
 
         def check(ignored):
             factory = self.process.serverFactory
+            handler = factory.handler
             self.assertIsInstance(factory, NodeServerFactory)
-            self.assertIdentical(factory.handler, self.process.handler)
+            self.assertIdentical(handler, self.process.handler)
+            rexProcess = handler._namedProcesses["rex"].im_self
+            self.assertEqual(factory, rexProcess.serverFactory)
+            kernelProcess = handler._namedProcesses["net_kernel"].im_self
+            self.assertEqual(factory, rexProcess.serverFactory)
+
 
         return d.addCallback(check)
 
@@ -758,3 +751,194 @@ class ProcessTestCase(TestCase):
         proto.dataReceived("name %s at port %s\n" % ("egg", 4321))
         transport.loseConnection()
         return d.addCallback(self.assertEqual, [("foo", 1234), ("egg", 4321)])
+
+
+
+class TestableNetKernelProcess(NetKernelProcess):
+    """
+    A testable version of L{NetKernelProcess}.
+    """
+    oneShotPortMapperClass = TestableProcessOSMPF
+
+    persistentPortMapperClass = TestablePPMF
+
+
+
+class NetKernelProcessTestCase(TestCase):
+    """
+    Tests for L{NetKernelProcess}.
+    """
+
+    def setUp(self):
+        self.clock = Clock()
+        self.factory = DummyFactory()
+        self.process = TestableNetKernelProcess("foo@bar", "test_cookie",
+                                                self.factory.handler, {})
+        self.process.callLater = self.clock.callLater
+
+        proto = TestableNodeProtocol()
+        proto.state = "connected"
+        transport = CloseNotifiedTransport()
+        proto.factory = self.factory
+        proto.makeConnection(transport)
+        transport.protocol = proto
+
+        self.transport = transport
+        self.protocol = proto
+
+
+    def test_ping(self):
+        """
+        L{NetKernelProcess} is able to answer C{ping} requests with C{yes}.
+        """
+        pid = Pid(Atom("foo@bar"), 0, 0, 0)
+        ref = Reference(Atom("spam@egg"), 0, 0)
+        msg = Tuple((Atom("$gen_call"), Tuple((pid, ref)),
+                     Tuple((Atom("is_auth"), Atom("egg@spam")))))
+        self.process._receivedData(self.protocol, None, msg)
+
+        self.assertEqual(
+            "\x00\x00\x007p\x83h\x03a\x02d\x00\x00gd\x00\x07"
+            "foo@bar\x00\x00\x00\x00\x00\x00\x00\x00\x00\x83h"
+            "\x02ed\x00\x08spam@egg\x00\x00\x00\x00\x00d\x00\x03yes",
+            self.transport.value())
+
+
+    def test_spawn(self):
+        """
+        L{NetKernelProcess} answers C{spawn} calls with the pid of the created
+        process, create the related L{SpawnProcess} instance and calls its
+        C{start} method.
+        """
+        started = []
+
+        class TestProcess(SpawnProcess):
+
+            def start(self, pid, args):
+                started.append((pid, args))
+
+        class Holder(object):
+
+            func = TestProcess
+
+        self.process._methodsHolder["mod"] = Holder()
+
+        pid = Pid(Atom("foo@bar"), 0, 0, 0)
+        ref = Reference(Atom("spam@egg"), 0, 0)
+        msg = Tuple((Atom("$gen_call"), Tuple((pid, ref)),
+                     Tuple((Atom("spawn"), Atom("mod"), Atom("func"),
+                            (Atom("ok"), "args")))))
+        self.process._receivedData(self.protocol, None, msg)
+
+        self.assertEqual(
+            "\x00\x00\x00Fp\x83h\x03a\x02d\x00\x00gd\x00\x07foo@bar"
+            "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x83h\x02ed\x00\x08"
+            "spam@egg\x00\x00\x00\x00\x00gd\x00\x08spam@egg\x00\x00"
+            "\x00\x01\x00\x00\x00\x00\x00",
+            self.transport.value())
+
+        self.assertEqual([(pid, (Atom("ok"), "args"))], started)
+
+
+    def test_spawnUnknownModule(self):
+        """
+        L{NetKernelProcess} answers C{spawn} calls with an error message if the
+        specified module can't be found.
+        """
+        pid = Pid(Atom("foo@bar"), 0, 0, 0)
+        ref = Reference(Atom("spam@egg"), 0, 0)
+        msg = Tuple((Atom("$gen_call"), Tuple((pid, ref)),
+                     Tuple((Atom("spawn"), Atom("mod"), Atom("func"),
+                            (Atom("ok"), "args")))))
+        self.process._receivedData(self.protocol, None, msg)
+
+        self.assertEqual(
+            "\x00\x00\x00Jp\x83h\x03a\x02d\x00\x00gd\x00\x07foo@bar"
+            "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x83h\x02ed\x00\x08"
+            "spam@egg\x00\x00\x00\x00\x00d\x00\x16undefined module 'mod'",
+            self.transport.value())
+
+
+    def test_spawnUnknownProcess(self):
+        """
+        L{NetKernelProcess} answers C{spawn} calls with an error message if the
+        speficied function can't be found.
+        """
+        class Holder(object):
+            pass
+
+        self.process._methodsHolder["mod"] = Holder()
+
+        pid = Pid(Atom("foo@bar"), 0, 0, 0)
+        ref = Reference(Atom("spam@egg"), 0, 0)
+        msg = Tuple((Atom("$gen_call"), Tuple((pid, ref)),
+                     Tuple((Atom("spawn"), Atom("mod"), Atom("func"),
+                            (Atom("ok"), "args")))))
+        self.process._receivedData(self.protocol, None, msg)
+
+        self.assertEqual(
+            "\x00\x00\x00Mp\x83h\x03a\x02d\x00\x00gd\x00\x07foo@bar"
+            "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x83h\x02ed\x00\x08"
+            "spam@egg\x00\x00\x00\x00\x00d\x00\x19undefined function 'func'",
+            self.transport.value())
+
+
+    def test_spawnNonProcess(self):
+        """
+        L{NetKernelProcess} answers C{spawn} calls with an error message if the
+        speficied object is a not a L{SpawnProcess} subclass.
+        """
+        class Holder(object):
+            func = "Func"
+
+        self.process._methodsHolder["mod"] = Holder()
+
+        pid = Pid(Atom("foo@bar"), 0, 0, 0)
+        ref = Reference(Atom("spam@egg"), 0, 0)
+        msg = Tuple((Atom("$gen_call"), Tuple((pid, ref)),
+                     Tuple((Atom("spawn"), Atom("mod"), Atom("func"),
+                            (Atom("ok"), "args")))))
+        self.process._receivedData(self.protocol, None, msg)
+
+        self.assertEqual(
+            "\x00\x00\x00Hp\x83h\x03a\x02d\x00\x00gd\x00\x07foo@bar"
+            "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x83h\x02ed\x00\x08"
+            "spam@egg\x00\x00\x00\x00\x00d\x00\x14wrong process 'func'",
+            self.transport.value())
+
+
+    def test_spawnLink(self):
+        """
+        L{NetKernelProcess} handles C{spawn_link} calls by creating the asked
+        process and making a link call.
+        """
+        started = []
+
+        class TestProcess(SpawnProcess):
+
+            def start(self, pid, args):
+                started.append((pid, args))
+
+        class Holder(object):
+
+            func = TestProcess
+
+        self.process._methodsHolder["mod"] = Holder()
+
+        pid = Pid(Atom("foo@bar"), 0, 0, 0)
+        ref = Reference(Atom("spam@egg"), 0, 0)
+        msg = Tuple((Atom("$gen_call"), Tuple((pid, ref)),
+                     Tuple((Atom("spawn_link"), Atom("mod"), Atom("func"),
+                            (Atom("ok"), "args")))))
+        self.process._receivedData(self.protocol, None, msg)
+
+        self.assertEqual(
+            "\x00\x00\x00/p\x83h\x03a\x01gd\x00\x08spam@egg"
+            "\x00\x00\x00\x01\x00\x00\x00\x00\x00gd\x00\x07foo@bar"
+            "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00Fp\x83h\x03a\x02"
+            "d\x00\x00gd\x00\x07foo@bar\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+            "\x83h\x02ed\x00\x08spam@egg\x00\x00\x00\x00\x00gd\x00\x08"
+            "spam@egg\x00\x00\x00\x01\x00\x00\x00\x00\x00",
+            self.transport.value())
+
+        self.assertEqual([(pid, (Atom("ok"), "args"))], started)

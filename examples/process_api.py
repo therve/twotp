@@ -11,41 +11,66 @@ import sys
 from twisted.python import log
 from twisted.internet import reactor
 
-from twotp import Process, readCookie, buildNodeName
+from twotp import Process, readCookie, buildNodeName, SpawnProcess, Tuple
 
 
 
 def testPing(process):
+
     def cb(resp):
         print "Got response", resp
+
     def eb(error):
         print "Got error", error
+
     return process.ping("erlang").addCallback(cb).addErrback(eb)
 
 
 def testReceive(process):
+
     def cb(resp):
         print "Got response", resp
+
     def eb(error):
         print "Got error", error
+
     process.register("main")
     return process.receive().addCallback(cb).addErrback(eb)
 
 
+
+class EchoProcess(SpawnProcess):
+
+    def start(self, pid, *args):
+        self.receive().addCallback(self.echo)
+
+
+    def echo(self, *args):
+        self.send(args[0][0], Tuple(args[0][1:]))
+        self.receive().addCallback(self.echo)
+
+
+
 class RemoteCalls(object):
+
+    echo = EchoProcess
 
     def __init__(self, process):
         self.process = process
 
+
     def remote_get_pid(self):
         return self.process.pid
+
 
     def remote_get_cwd(self, *args):
         from twisted.python import filepath
         return filepath.FilePath(".").path
 
+
     def remote_echo(self, *args):
         return args[0]
+
 
 
 def main(nodeName, server=False):
@@ -58,6 +83,7 @@ def main(nodeName, server=False):
     else:
         testPing(process)
     reactor.run()
+
 
 
 if __name__ == "__main__":

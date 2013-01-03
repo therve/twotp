@@ -9,6 +9,7 @@ Basic node protocol and node message handler classes.
 import os
 import time
 import random
+import inspect
 
 from hashlib import md5
 
@@ -659,8 +660,17 @@ class ProcessBase(object):
         def gotFactory(factory):
             self.serverFactory = factory
             factory.handler = self.handler
+            for call in self.handler._registeredProcesses.values():
+                call.im_self.serverFactory = factory
 
         return self.persistentEpmd.publish().addCallback(gotFactory)
+
+
+    def stop(self):
+        """
+        Stop listening.
+        """
+        return self.persistentEpmd.stop()
 
 
     def _getNodeConnection(self, nodeName):
@@ -866,9 +876,9 @@ class ProcessBase(object):
         Exit this process.
         """
         for proto, pid in self.pid._links:
-            self.handler.sendLinkExit(proto, self, pid, reason)
+            self.handler.sendLinkExit(proto, self.pid, pid, reason)
         for proto, pid, ref in self.pid._remoteMonitors:
-            self.handler.sendMonitorExit(proto, self, pid, ref, reason)
+            self.handler.sendMonitorExit(proto, self.pid, pid, ref, reason)
         self.pid.exit(reason)
         if self._receiveDeferred is not None:
             d, self._receiveDeferred = self._receiveDeferred, None
@@ -901,7 +911,8 @@ class Process(ProcessBase):
         self._methodsHolder = {}
         rex = RexProcess(nodeName, cookie, self.handler, self._methodsHolder)
         rex.register("rex")
-        netKernel = NetKernelProcess(nodeName, cookie, self.handler)
+        netKernel = NetKernelProcess(nodeName, cookie, self.handler,
+                                     self._methodsHolder)
         netKernel.register("net_kernel")
 
 
@@ -910,6 +921,19 @@ class Process(ProcessBase):
         Register a method holder for module named C{name}.
         """
         self._methodsHolder[name] = instance
+
+
+
+class SpawnProcess(ProcessBase):
+    """
+    Process class to subclass when implementing a remote process supporting
+    'spawn'.
+    """
+
+    def start(self, pid, args):
+        """
+        Method to implement to be notified when the process is started.
+        """
 
 
 
@@ -1002,28 +1026,65 @@ class NetKernelProcess(ProcessBase):
     now.
     """
 
+    def __init__(self, nodeName, cookie, handler, methodsHolder):
+        ProcessBase.__init__(self, nodeName, cookie, handler)
+        self._methodsHolder = methodsHolder
+
+
     def _receivedData(self, proto, ctrlMessage, message):
         """
         Handle regsend reply for net_kernel module.
         """
         if message[0].text == "$gen_call":
-            if message[2][0].text == "is_auth":
+            toPid = message[1][0]
+            ref = message[1][1]
+            method = message[2][0].text
+            if method == "is_auth":
                 # Reply to ping
-                toPid = message[1][0]
-                ref = message[1][1]
                 resp = Tuple((ref, Atom("yes")))
-            elif message[2][0].text == "spawn":
-                toPid = message[1][0]
-                ref = message[1][1]
-                # Don't handle that for now
-                resp = Tuple((ref, Atom("error")))
+            elif method in ("spawn", "spawn_link"):
+                moduleName, funcName, args = message[2][1:4]
+                module = moduleName.text
+                func = funcName.text
+
+                if module in self._methodsHolder:
+                    processClass = getattr(
+                        self._methodsHolder[module], func, None)
+
+                    if processClass is None:
+                        log.msg(
+                            "Unknow method %r of module %r" % (func, module))
+
+                        resp = Tuple(
+                            (ref, Atom("undefined function %r" % (func,))))
+                    elif not (inspect.isclass(processClass) and
+                              issubclass(processClass, SpawnProcess)):
+                        log.msg("Trying to spawn non process %r of module %r" %
+                                (func, module))
+                        resp = Tuple(
+                            (ref, Atom("wrong process %r" % (func,))))
+                    else:
+                        log.msg("Spawn call to method %r" % (func,))
+
+                        process = processClass(self.nodeName, self.cookie,
+                                               self.handler)
+                        process.serverFactory = self.serverFactory
+                        if method == "spawn_link":
+                            process.pid.link(proto, toPid)
+                            self.handler.sendLink(proto, process.pid, toPid)
+                        process.start(toPid, args)
+                        resp = Tuple((ref, process.pid))
+                else:
+                    log.msg("No holder registered for %r" % (module,))
+                    resp = Tuple(
+                        (ref, Atom("undefined module %r" % (module,))))
+
             else:
                 log.msg("Unhandled method %s" % (message[2][0].text,))
                 resp = Tuple((ref, Atom("error")))
+            self.handler.send(proto, toPid, resp)
         else:
             log.msg("Unhandled call %s" % (message[0].text,))
-            resp = Tuple((ref, Atom("error")))
-        self.handler.send(proto, toPid, resp)
 
 
 

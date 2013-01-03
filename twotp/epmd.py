@@ -277,6 +277,8 @@ class PersistentPortMapperFactory(ClientFactory):
     nodeFactoryClass = NodeServerFactory
     _connectDeferred = None
     nodePortNumber = 0
+    nodePort = None
+    epmdProtocol = None
 
     def __init__(self, nodeName, cookie, host="127.0.0.1"):
         """
@@ -311,10 +313,20 @@ class PersistentPortMapperFactory(ClientFactory):
         self._connectDeferred = Deferred()
         nodeFactory = self.nodeFactoryClass(
             self.nodeName, self.cookie, self._connectDeferred)
-        nodePort = self.listenTCP(0, nodeFactory)
-        self.nodePortNumber = nodePort.getHost().port
+        self.nodePort = self.listenTCP(0, nodeFactory)
+        self.nodePortNumber = self.nodePort.getHost().port
         self.connectTCP(self.host, self.EPMD_PORT, self)
         return self._connectDeferred
+
+
+    def stop(self):
+        """
+        Stop a previous publish call.
+        """
+        if self.epmdProtocol is not None:
+            self.epmdProtocol.transport.loseConnection()
+        if self.nodePort is not None:
+            return self.nodePort.stopListening()
 
 
     def buildProtocol(self, addr):
@@ -329,6 +341,7 @@ class PersistentPortMapperFactory(ClientFactory):
                            self.nodeType,
                            self.distrVSNRange,
                            self.nodeName.split("@")[0])
+        self.epmdProtocol = p
         return p
 
 
