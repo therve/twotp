@@ -905,3 +905,40 @@ class NetKernelProcessTestCase(TestCase):
             "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x83h\x02ed\x00\x08"
             "spam@egg\x00\x00\x00\x00\x00d\x00\x14wrong process 'func'",
             self.transport.value())
+
+
+    def test_spawnLink(self):
+        """
+        L{NetKernelProcess} handles C{spawn_link} calls by creating the asked
+        process and making a link call.
+        """
+        started = []
+
+        class TestProcess(SpawnProcess):
+
+            def start(self, pid, args):
+                started.append((pid, args))
+
+        class Holder(object):
+
+            func = TestProcess
+
+        self.process._methodsHolder["mod"] = Holder()
+
+        pid = Pid(Atom("foo@bar"), 0, 0, 0)
+        ref = Reference(Atom("spam@egg"), 0, 0)
+        msg = Tuple((Atom("$gen_call"), Tuple((pid, ref)),
+                     Tuple((Atom("spawn_link"), Atom("mod"), Atom("func"),
+                            (Atom("ok"), "args")))))
+        self.process._receivedData(self.protocol, None, msg)
+
+        self.assertEqual(
+            "\x00\x00\x00/p\x83h\x03a\x01gd\x00\x08spam@egg"
+            "\x00\x00\x00\x01\x00\x00\x00\x00\x00gd\x00\x07foo@bar"
+            "\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00Fp\x83h\x03a\x02"
+            "d\x00\x00gd\x00\x07foo@bar\x00\x00\x00\x00\x00\x00\x00\x00\x00"
+            "\x83h\x02ed\x00\x08spam@egg\x00\x00\x00\x00\x00gd\x00\x08"
+            "spam@egg\x00\x00\x00\x01\x00\x00\x00\x00\x00",
+            self.transport.value())
+
+        self.assertEqual([(pid, (Atom("ok"), "args"))], started)
