@@ -9,6 +9,7 @@ Basic node protocol and node message handler classes.
 import os
 import time
 import random
+import inspect
 
 from hashlib import md5
 
@@ -659,6 +660,8 @@ class ProcessBase(object):
         def gotFactory(factory):
             self.serverFactory = factory
             factory.handler = self.handler
+            for call in self.handler._registeredProcesses.values():
+                call.im_self.serverFactory = factory
 
         return self.persistentEpmd.publish().addCallback(gotFactory)
 
@@ -901,7 +904,8 @@ class Process(ProcessBase):
         self._methodsHolder = {}
         rex = RexProcess(nodeName, cookie, self.handler, self._methodsHolder)
         rex.register("rex")
-        netKernel = NetKernelProcess(nodeName, cookie, self.handler)
+        netKernel = NetKernelProcess(nodeName, cookie, self.handler,
+                                     self._methodsHolder)
         netKernel.register("net_kernel")
 
 
@@ -910,6 +914,19 @@ class Process(ProcessBase):
         Register a method holder for module named C{name}.
         """
         self._methodsHolder[name] = instance
+
+
+
+class SpawnProcess(ProcessBase):
+    """
+    Process class to subclass when implementing a remote process supporting
+    'spawn'.
+    """
+
+    def start(self, pid, args):
+        """
+        Method to implement to be notified when the process is started.
+        """
 
 
 
@@ -1002,6 +1019,11 @@ class NetKernelProcess(ProcessBase):
     now.
     """
 
+    def __init__(self, nodeName, cookie, handler, methodsHolder):
+        ProcessBase.__init__(self, nodeName, cookie, handler)
+        self._methodsHolder = methodsHolder
+
+
     def _receivedData(self, proto, ctrlMessage, message):
         """
         Handle regsend reply for net_kernel module.
@@ -1015,8 +1037,39 @@ class NetKernelProcess(ProcessBase):
             elif message[2][0].text == "spawn":
                 toPid = message[1][0]
                 ref = message[1][1]
-                # Don't handle that for now
-                resp = Tuple((ref, Atom("error")))
+                moduleName, funcName, args = message[2][1:4]
+                module = moduleName.text
+                func = funcName.text
+
+                if module in self._methodsHolder:
+                    processClass = getattr(
+                        self._methodsHolder[module], func, None)
+
+                    if processClass is None:
+                        log.msg(
+                            "Unknow method %r of module %r" % (func, module))
+
+                        resp = Tuple(
+                            (ref, Atom("undefined function %r" % (func,))))
+                    elif not (inspect.isclass(processClass) and
+                              issubclass(processClass, SpawnProcess)):
+                        log.msg("Trying to spawn non process %r of module %r" %
+                                (func, module))
+                        resp = Tuple(
+                            (ref, Atom("wrong process %r" % (func,))))
+                    else:
+                        log.msg("Spawn call to method %r" % (func,))
+
+                        process = processClass(self.nodeName, self.cookie,
+                                               self.handler)
+                        process.serverFactory = self.serverFactory
+                        process.start(toPid, args)
+                        resp = Tuple((ref, process.pid))
+                else:
+                    log.msg("No holder registered for %r" % (module,))
+                    resp = Tuple(
+                        (ref, Atom("undefined module %r" % (module,))))
+
             else:
                 log.msg("Unhandled method %s" % (message[2][0].text,))
                 resp = Tuple((ref, Atom("error")))
