@@ -666,6 +666,13 @@ class ProcessBase(object):
         return self.persistentEpmd.publish().addCallback(gotFactory)
 
 
+    def stop(self):
+        """
+        Stop listening.
+        """
+        return self.persistentEpmd.stop()
+
+
     def _getNodeConnection(self, nodeName):
         """
         Retrieve a connection to node C{nodeName}.

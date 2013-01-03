@@ -14,8 +14,8 @@ from twisted.internet.protocol import ProcessProtocol
 from twisted.python.procutils import which
 from twisted.trial.unittest import SkipTest
 
-from twotp import Process, buildNodeName
-from twotp.term import Atom
+from twotp import Process, buildNodeName, SpawnProcess
+from twotp.term import Atom, Tuple
 from twotp.test.util import TestCase
 
 
@@ -66,9 +66,9 @@ class IntegrationTestCase(TestCase):
         executables = which("erl")
         if not executables:
             raise SkipTest("No erl process")
-        self.cookie = "twotp-cookie"
-        self.erlangName = "twotp-erlang-test"
-        self.nodeName = buildNodeName("twotp-python-test")
+        self.cookie = "twotp_cookie"
+        self.erlangName = "twotp_erlang_test"
+        self.nodeName = buildNodeName("twotp_python_test")
         args = [executables[0], "-setcookie", self.cookie, "-sname",
                 self.erlangName]
         self.process = reactor.spawnProcess(
@@ -140,3 +140,43 @@ class IntegrationTestCase(TestCase):
         deferred = process.callRemote(
             self.erlangName, "sets", "add_element", Atom("egg"), s)
         return deferred.addCallback(check)
+
+
+    def test_spawn(self):
+        """
+        Spawn a process on the erlang side, send data from python, and receive
+        data after.
+        """
+        d = Deferred()
+
+        class TestProcess(SpawnProcess):
+
+            def start(oself, pid, *args):
+                oself.send(pid, Tuple(["ok", "connect"]))
+                oself.receive().chainDeferred(d)
+
+        class RemoteCalls(object):
+            test = TestProcess
+
+        process = Process(self.nodeName, self.cookie)
+        process.registerModule("api", RemoteCalls())
+
+        def spawn(ignore):
+            self.protocol.transport.write(
+                "Pid = spawn(%s, api, test, []).\n" % self.nodeName)
+            self.protocol.transport.write(
+                "receive Msg -> io:format(\"**~p**~n\", [Msg]) end.\n")
+            self.protocol.transport.write(
+                "Pid ! {self(), \"ok\", \"disconnect\"}.\n")
+
+            return d
+
+        def check(result):
+            self.assertIn("**{\"ok\",\"connect\"}**", self.protocol.data[1])
+            self.assertEqual("ok", "".join(map(chr, result[1])))
+            self.assertEqual("disconnect", "".join(map(chr, result[2])))
+            return process.stop()
+
+        d.addCallback(check)
+
+        return process.listen().addCallback(spawn)

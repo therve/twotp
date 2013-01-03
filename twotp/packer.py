@@ -102,7 +102,7 @@ class Packer(ConstantHolder):
                 content.append(self.packChar(c))
                 term = term - (256 ** i) * c
             content.reverse()
-            return data + ''.join(content)
+            return data + "".join(content)
 
     pack_long = pack_int
 
@@ -232,7 +232,7 @@ class Packer(ConstantHolder):
         # keys in the content are placed in a particular order, specified by
         # the phash function. For now, it just put the keys in Python order.
         content = tuple([[list(i)] for i in term.items()])
-        d = (Atom('dict'), size, slot, slot, slot / 2,
+        d = (Atom("dict"), size, slot, slot, slot / 2,
              expand, contract, empty, (content + emptyRemain,))
         return self.packOneTerm(d)
 
@@ -255,7 +255,7 @@ class Packer(ConstantHolder):
         # values in the content are placed in a particular order, specified by
         # the phash function. For now, it just put the values in Python order.
         content = tuple([[i] for i in term])
-        d = (Atom('set'), size, slot, slot, slot / 2,
+        d = (Atom("set"), size, slot, slot, slot / 2,
              expand, contract, empty, (content + emptyRemain,))
         return self.packOneTerm(d)
 
@@ -276,7 +276,7 @@ class Packer(ConstantHolder):
             return self.packChar(self.MAGIC_NIL)
         else:
             if self._check_string(term) and len(term) < self.MAX_SHORT:
-                term = ''.join([chr(i) for i in term])
+                term = "".join([chr(i) for i in term])
                 return (self.packChar(self.MAGIC_STRING) +
                         self.packShort(len(term)) + term)
 
@@ -292,7 +292,7 @@ class Packer(ConstantHolder):
         """
         termType = term.__class__.__name__.lower()
         try:
-            meth = getattr(self, 'pack_%s' % (termType,))
+            meth = getattr(self, "pack_%s" % (termType,))
         except AttributeError:
             raise UnhandledClass(termType)
         else:
