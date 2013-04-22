@@ -1127,7 +1127,15 @@ def getHostName():
     Return the current hostname to be used in the node name.
     """
     import socket
-    return socket.getfqdn("").split(".")[0]
+    fqdn = socket.getfqdn()
+    if "localhost" in fqdn:
+        fqdn = socket.getaddrinfo(socket.gethostname(), None, socket.AF_INET,
+                                  socket.SOCK_DGRAM, socket.IPPROTO_IP,
+                                  socket.AI_CANONNAME)[0][3]
+        if "localhost" in fqdn:
+            fqdn = socket.gethostname()
+    return fqdn.split(".")[0]
+
 
 
 
