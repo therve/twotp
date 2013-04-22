@@ -484,7 +484,7 @@ class NodeProtocol(Protocol):
         """
         Generate a simple insecure challenge.
         """
-        return int(self.factory.randomFactory()) & 0x7fffffff
+        return self.factory.randomFactory(0, 0x7fffffff)
 
 
     def generateDigest(self, challenge, cookie):
@@ -573,7 +573,7 @@ class NodeBaseFactory(object):
     creation = 0
     netTickTime = 60
     timeFactory = time.time
-    randomFactory = random.random
+    randomFactory = random.randint
 
     def __init__(self, nodeName, cookie):
         """

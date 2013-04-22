@@ -57,7 +57,7 @@ class DummyFactory(object):
         return self.times.pop(0)
 
 
-    def randomFactory(self):
+    def randomFactory(self, a, b):
         """
         Return always the same predictable number.
         """
@@ -165,16 +165,6 @@ class NodeProtocolTestCase(TestCase):
         self.proto.state = "connected"
         self.proto.send("egg")
         self.assertEqual(self.transport.value(), "\x00\x00\x00\x03egg")
-
-
-    def test_generateChallenge(self):
-        """
-        Test output value of generateChallenge: it truncates data on 28 bits.
-        """
-        self.assertEqual(self.proto.generateChallenge(), 2)
-        data = [0x7fffffff + 2]
-        self.factory.randomFactory = data.pop
-        self.assertEqual(self.proto.generateChallenge(), 1)
 
 
     def test_generateDigest(self):

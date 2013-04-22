@@ -39,7 +39,7 @@ class DummyServerFactory(object):
         return self.times.pop(0)
 
 
-    def randomFactory(self):
+    def randomFactory(self, a, b):
         """
         Return always the same predictable number.
         """
@@ -183,7 +183,7 @@ class NodeServerFactoryTestCase(TestCase):
         """
         d = Deferred()
         factory = NodeServerFactory("foo@bar", "test_cookie", d)
-        factory.randomFactory = lambda: 2
+        factory.randomFactory = lambda a, b: 2
         proto = factory.buildProtocol(None)
         transport = StringTransportWithDisconnection()
         proto.makeConnection(transport)

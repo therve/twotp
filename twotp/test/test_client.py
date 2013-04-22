@@ -55,7 +55,7 @@ class DummyClientFactory(object):
         return self.times.pop(0)
 
 
-    def randomFactory(self):
+    def randomFactory(self, a, b):
         """
         Return always the same predictable number.
         """
