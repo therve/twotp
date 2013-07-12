@@ -4,3 +4,7 @@ Documentation is available in the doc/ folder.
 
 Twotp depends of Twisted being installed, and required at least Twisted 12.0.
 Once installed, run 'trial twotp' to launch the tests.
+
+"!https://travis-ci.org/therve/twtop.png!":https://travis-ci.org/therve/twotp
+
+"!https://coveralls.io/repos/therve/twotp/badge.png?branch=master!":https://coveralls.io/r/therve/twotp?branch=master
