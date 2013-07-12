@@ -67,7 +67,7 @@ class IntegrationTestCase(TestCase):
         if not executables:
             raise SkipTest("No erl process")
         self.cookie = "twotp_cookie"
-        self.erlangName = "twotp_erlang_test"
+        self.erlangName = "twotp_erlang_test@localhost"
         self.nodeName = "twotp_python_test@localhost"
         args = [executables[0], "-setcookie", self.cookie, "-sname",
                 self.erlangName]
