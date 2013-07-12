@@ -68,7 +68,7 @@ class IntegrationTestCase(TestCase):
             raise SkipTest("No erl process")
         self.cookie = "twotp_cookie"
         self.erlangName = "twotp_erlang_test"
-        self.nodeName = buildNodeName("twotp_python_test")
+        self.nodeName = "twotp_python_test@localhost"
         args = [executables[0], "-setcookie", self.cookie, "-sname",
                 self.erlangName]
         self.process = reactor.spawnProcess(
