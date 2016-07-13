@@ -6,9 +6,6 @@
 Define classes to map erlang types.
 """
 
-from twisted.python.util import unsignedID
-
-
 
 class Term(object):
     """
@@ -79,7 +76,7 @@ class Binary(Term):
         Simple representation of the data.
         """
         s = "<%s at %s> with value %s" % (self.__class__.__name__,
-                                          hex(unsignedID(self)), self.value)
+                                          hex(id(self)), self.value)
         return s
 
 
@@ -115,7 +112,7 @@ class BitBinary(Term):
         Simple representation of the data.
         """
         s = "<%s at %s> with data %s, bits %s" % (self.__class__.__name__,
-                                                  hex(unsignedID(self)),
+                                                  hex(id(self)),
                                                   self.data, self.bits)
         return s
 
@@ -165,7 +162,7 @@ class Atom(Term):
         Simple representation with the text.
         """
         s = "<%s at %s, text %r>" % (self.__class__.__name__,
-                                     hex(unsignedID(self)), self.text)
+                                     hex(id(self)), self.text)
         return s
 
 
@@ -244,7 +241,7 @@ class Pid(Term):
         Simple representation with all attributes.
         """
         s = "<%s at %s, named %r, id %s, serial %s, creation %s>" % (
-            self.__class__.__name__, hex(unsignedID(self)), self.nodeName,
+            self.__class__.__name__, hex(id(self)), self.nodeName,
             self.nodeId, self.serial, self.creation)
         return s
 
@@ -351,7 +348,7 @@ class Reference(Term):
         Simple representation with all attributes.
         """
         s = "<%s at %s> named %s, creation %s, ids %r" % (
-            self.__class__.__name__, hex(unsignedID(self)), self.nodeName,
+            self.__class__.__name__, hex(id(self)), self.nodeName,
             self.creation, self.refIds)
         return s
 
@@ -394,7 +391,7 @@ class Port(Term):
         Simple representation with all attributes.
         """
         s = "<%s at %s> named %s, creation %s, id %r" % (
-            self.__class__.__name__, hex(unsignedID(self)), self.nodeName,
+            self.__class__.__name__, hex(id(self)), self.nodeName,
             self.creation, self.portId)
         return s
 
@@ -433,7 +430,7 @@ class Fun(Term):
         """
         s = ("<%s at %s> with pid %s, module %s, index %s , uniq %s, "
              "freeVars %s" % (
-             self.__class__.__name__, hex(unsignedID(self)), self.pid,
+             self.__class__.__name__, hex(id(self)), self.pid,
              self.module, self.index, self.uniq, self.freeVars))
         return s
 
@@ -480,7 +477,7 @@ class NewFun(Term):
         """
         s = ("<%s at %s> with pid %s, module %s, index %s , uniq %s, "
              "freeVars %s, arity %s, numFree %s, oldIndex %s, oldUniq %s" % (
-             self.__class__.__name__, hex(unsignedID(self)), self.pid,
+             self.__class__.__name__, hex(id(self)), self.pid,
              self.module, self.index, self.uniq, self.freeVars, self.arity,
              self.numFree, self.oldIndex, self.oldUniq))
         return s
@@ -516,7 +513,7 @@ class Export(Term):
         Simple representation with all attributes.
         """
         s = ("<%s at %s> function %s in module %s, arity %s" % (
-            self.__class__.__name__, hex(unsignedID(self)), self.module,
+            self.__class__.__name__, hex(id(self)), self.module,
             self.function, self.arity))
         return s
 
